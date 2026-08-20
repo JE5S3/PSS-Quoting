@@ -765,9 +765,21 @@ async function sendQuoteEmail() {
   }
 
   const quote = formToQuote();
-  const to = (form.elements.emailTo.value || quote.clientEmail || '').trim();
-  const subject = (form.elements.emailSubject.value || `Phase Shift Studio Quote ${quote.quoteNumber}`).trim();
-  const message = (form.elements.emailMessage.value || '').trim();
+
+  const to = (
+    form.elements.emailTo.value ||
+    quote.clientEmail ||
+    ''
+  ).trim();
+
+  const subject = (
+    form.elements.emailSubject.value ||
+    `Phase Shift Studio Quote ${quote.quoteNumber}`
+  ).trim();
+
+  const message = (
+    form.elements.emailMessage.value || ''
+  ).trim();
 
   if (!to) {
     alert('Enter a client email address before sending.');
@@ -781,68 +793,132 @@ async function sendQuoteEmail() {
     return;
   }
 
-  const button = document.getElementById('send-quote-email-btn');
+  const button =
+    document.getElementById('send-quote-email-btn');
+
   const oldHtml = button.innerHTML;
+
   button.disabled = true;
   button.innerHTML = 'SENDING…';
 
   try {
+    // -----------------------------------
+    // SAVE QUOTE FIRST
+    // -----------------------------------
     const savedId = await saveQuoteToDb({
       ...quote,
       emailSubject: subject,
       emailMessage: message
     });
 
-    const savedBase = quotes.find(q => q.id === savedId);
-    const savedQuote = savedBase ? enrichQuote(savedBase) : quote;
+    const savedBase =
+      quotes.find(q => q.id === savedId);
 
-    const { data: { session } } = await db.auth.getSession();
+    const savedQuote =
+      savedBase
+        ? enrichQuote(savedBase)
+        : quote;
 
-if (!session) {
-  throw new Error('Your login session has expired. Please sign in again.');
-}
+    // -----------------------------------
+    // GET CURRENT LOGIN SESSION
+    // -----------------------------------
+    const {
+      data: sessionData,
+      error: sessionError
+    } = await db.auth.getSession();
 
-const response = await fetch(
-  `${SUPABASE_URL}/functions/v1/send-quote`,
-  {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
-      'apikey': SUPABASE_PUBLISHABLE_KEY
-    },
-    body: JSON.stringify({
-      to,
-      clientName:
-        savedQuote.contactName ||
-        savedQuote.clientName ||
-        '',
-      quoteNumber: savedQuote.quoteNumber,
-      projectName: savedQuote.projectName,
-      total: money(savedQuote.total),
-      paymentPlan:
-        savedQuote.paymentPlan || 'one_time',
-      subject,
-      message
-    })
-  }
-);
+    if (sessionError) {
+      throw sessionError;
+    }
 
-const result = await response.json();
+    const session = sessionData?.session;
 
-if (!response.ok || !result.success) {
-  throw new Error(
-    result?.error ||
-    `Email function returned ${response.status}`
-  );
-}
+    if (!session) {
+      throw new Error(
+        'Your login session has expired. Please sign in again.'
+      );
+    }
 
-    if (error) throw error;
-    if (!data?.success) throw new Error(data?.error || 'Email could not be sent.');
+    // -----------------------------------
+    // CALL EDGE FUNCTION
+    // -----------------------------------
+    const response = await fetch(
+      `${SUPABASE_URL}/functions/v1/send-quote`,
+      {
+        method: 'POST',
 
-    const sentAt = new Date().toISOString();
+        headers: {
+          'Content-Type': 'application/json',
 
-    const { error: updateError } = await db
+          'Authorization':
+            `Bearer ${session.access_token}`,
+
+          'apikey':
+            SUPABASE_PUBLISHABLE_KEY
+        },
+
+        body: JSON.stringify({
+          to,
+
+          clientName:
+            savedQuote.contactName ||
+            savedQuote.clientName ||
+            '',
+
+          quoteNumber:
+            savedQuote.quoteNumber,
+
+          projectName:
+            savedQuote.projectName,
+
+          total:
+            money(savedQuote.total),
+
+          paymentPlan:
+            savedQuote.paymentPlan ||
+            'one_time',
+
+          subject,
+
+          message
+        })
+      }
+    );
+
+    // -----------------------------------
+    // READ FUNCTION RESPONSE
+    // -----------------------------------
+    let result;
+
+    try {
+      result = await response.json();
+    } catch {
+      result = null;
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        result?.error ||
+        `Email function returned ${response.status}`
+      );
+    }
+
+    if (!result?.success) {
+      throw new Error(
+        result?.error ||
+        'The email function did not confirm delivery.'
+      );
+    }
+
+    // -----------------------------------
+    // MARK QUOTE AS SENT
+    // -----------------------------------
+    const sentAt =
+      new Date().toISOString();
+
+    const {
+      error: quoteUpdateError
+    } = await db
       .from('quotes')
       .update({
         status: 'SENT',
@@ -853,18 +929,43 @@ if (!response.ok || !result.success) {
       })
       .eq('id', savedId);
 
-    if (updateError) throw updateError;
+    if (quoteUpdateError) {
+      throw quoteUpdateError;
+    }
 
+    // -----------------------------------
+    // REFRESH ADMIN DATA
+    // -----------------------------------
     await loadLiveData();
 
-    form.elements.id.value = savedId;
-    form.elements.status.value = 'SENT';
+    form.elements.id.value =
+      savedId;
+
+    form.elements.status.value =
+      'SENT';
+
     updateEmailSendState(sentAt);
 
-    alert(`Quote ${savedQuote.quoteNumber} was sent successfully to ${to}.`);
-  } catch (error) {
-    console.error('Send quote email error:', error);
-    alert(`Could not send quote email.\n\n${error.message}`);
+    // -----------------------------------
+    // SUCCESS
+    // -----------------------------------
+    alert(
+      `Quote ${savedQuote.quoteNumber} was sent successfully to ${to}.`
+    );
+
+  } catch (sendError) {
+    console.error(
+      'Send quote email error:',
+      sendError
+    );
+
+    alert(
+      `Could not send quote email.\n\n${
+        sendError?.message ||
+        'Unknown error'
+      }`
+    );
+
   } finally {
     button.disabled = false;
     button.innerHTML = oldHtml;
