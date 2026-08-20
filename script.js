@@ -796,18 +796,46 @@ async function sendQuoteEmail() {
     const savedBase = quotes.find(q => q.id === savedId);
     const savedQuote = savedBase ? enrichQuote(savedBase) : quote;
 
-    const { data, error } = await db.functions.invoke('send-quote', {
-      body: {
-        to,
-        clientName: savedQuote.contactName || savedQuote.clientName || '',
-        quoteNumber: savedQuote.quoteNumber,
-        projectName: savedQuote.projectName,
-        total: money(savedQuote.total),
-        paymentPlan: savedQuote.paymentPlan || 'one_time',
-        subject,
-        message
-      }
-    });
+    const { data: { session } } = await db.auth.getSession();
+
+if (!session) {
+  throw new Error('Your login session has expired. Please sign in again.');
+}
+
+const response = await fetch(
+  `${SUPABASE_URL}/functions/v1/send-quote`,
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'apikey': SUPABASE_PUBLISHABLE_KEY
+    },
+    body: JSON.stringify({
+      to,
+      clientName:
+        savedQuote.contactName ||
+        savedQuote.clientName ||
+        '',
+      quoteNumber: savedQuote.quoteNumber,
+      projectName: savedQuote.projectName,
+      total: money(savedQuote.total),
+      paymentPlan:
+        savedQuote.paymentPlan || 'one_time',
+      subject,
+      message
+    })
+  }
+);
+
+const result = await response.json();
+
+if (!response.ok || !result.success) {
+  throw new Error(
+    result?.error ||
+    `Email function returned ${response.status}`
+  );
+}
 
     if (error) throw error;
     if (!data?.success) throw new Error(data?.error || 'Email could not be sent.');
