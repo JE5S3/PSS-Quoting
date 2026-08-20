@@ -758,90 +758,6 @@ duplicateBtn.onclick = async () => {
 };
 
 
-
-// -------------------------
-// PDF EMAIL ATTACHMENT
-// -------------------------
-function arrayBufferToBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000;
-  let binary = '';
-
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-
-  return btoa(binary);
-}
-
-async function generateQuotePdfAttachment(rawQuote) {
-  if (typeof window.html2pdf !== 'function') {
-    throw new Error('PDF generator did not load. Refresh the page and try again.');
-  }
-
-  const q = rawQuote.id ? enrichQuote(rawQuote) : rawQuote;
-  const exportRoot = document.createElement('div');
-  exportRoot.className = 'pdf-export-root';
-  exportRoot.style.position = 'fixed';
-  exportRoot.style.left = '-10000px';
-  exportRoot.style.top = '0';
-  exportRoot.style.width = '794px';
-  exportRoot.style.background = '#ffffff';
-  exportRoot.style.zIndex = '-1';
-  exportRoot.innerHTML = buildQuoteHtml(q);
-  document.body.appendChild(exportRoot);
-
-  try {
-    const safeNumber = String(q.quoteNumber || 'Quote')
-      .replace(/[^a-z0-9_-]+/gi, '-')
-      .replace(/^-+|-+$/g, '');
-
-    const filename = `Phase-Shift-Studio-${safeNumber || 'Quote'}.pdf`;
-
-    const worker = window.html2pdf()
-      .set({
-        margin: [8, 8, 8, 8],
-        filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff',
-          logging: false
-        },
-        jsPDF: {
-          unit: 'mm',
-          format: 'a4',
-          orientation: 'portrait'
-        },
-        pagebreak: {
-          mode: ['css', 'legacy'],
-          avoid: ['.print-head', '.quote-title', '.print-totals', '.print-notes', '.payment-box']
-        }
-      })
-      .from(exportRoot)
-      .toPdf();
-
-    const arrayBuffer = await worker.outputPdf('arraybuffer');
-
-    if (!arrayBuffer || !arrayBuffer.byteLength) {
-      throw new Error('The quote PDF could not be generated.');
-    }
-
-    if (arrayBuffer.byteLength > 7 * 1024 * 1024) {
-      throw new Error('The generated quote PDF is too large to email.');
-    }
-
-    return {
-      filename,
-      base64: arrayBufferToBase64(arrayBuffer),
-      bytes: arrayBuffer.byteLength
-    };
-  } finally {
-    exportRoot.remove();
-  }
-}
-
 async function sendQuoteEmail() {
   if (!currentUser) {
     alert('You must be signed in to send a quote.');
@@ -849,21 +765,9 @@ async function sendQuoteEmail() {
   }
 
   const quote = formToQuote();
-
-  const to = (
-    form.elements.emailTo.value ||
-    quote.clientEmail ||
-    ''
-  ).trim();
-
-  const subject = (
-    form.elements.emailSubject.value ||
-    `Phase Shift Studio Quote ${quote.quoteNumber}`
-  ).trim();
-
-  const message = (
-    form.elements.emailMessage.value || ''
-  ).trim();
+  const to = (form.elements.emailTo.value || quote.clientEmail || '').trim();
+  const subject = (form.elements.emailSubject.value || `Phase Shift Studio Quote ${quote.quoteNumber}`).trim();
+  const message = (form.elements.emailMessage.value || '').trim();
 
   if (!to) {
     alert('Enter a client email address before sending.');
@@ -877,142 +781,73 @@ async function sendQuoteEmail() {
     return;
   }
 
-  const button =
-    document.getElementById('send-quote-email-btn');
-
+  const button = document.getElementById('send-quote-email-btn');
   const oldHtml = button.innerHTML;
-
   button.disabled = true;
   button.innerHTML = 'SENDING…';
 
   try {
-    // -----------------------------------
-    // SAVE QUOTE FIRST
-    // -----------------------------------
     const savedId = await saveQuoteToDb({
       ...quote,
       emailSubject: subject,
       emailMessage: message
     });
 
-    const savedBase =
-      quotes.find(q => q.id === savedId);
+    const savedBase = quotes.find(q => q.id === savedId);
+    const savedQuote = savedBase ? enrichQuote(savedBase) : quote;
 
-    const savedQuote =
-      savedBase
-        ? enrichQuote(savedBase)
-        : quote;
+    const { data, error } = await db.functions.invoke('send-quote', {
+      body: {
+        to,
+        clientName: savedQuote.contactName || savedQuote.clientName || '',
+        quoteNumber: savedQuote.quoteNumber,
+        projectName: savedQuote.projectName,
+        total: money(savedQuote.total),
+        paymentPlan: savedQuote.paymentPlan || 'one_time',
+        subject,
+        message,
 
-    // -----------------------------------
-    // GET CURRENT LOGIN SESSION
-    // -----------------------------------
-    const {
-      data: sessionData,
-      error: sessionError
-    } = await db.auth.getSession();
-
-    if (sessionError) {
-      throw sessionError;
-    }
-
-    const session = sessionData?.session;
-
-    if (!session) {
-      throw new Error(
-        'Your login session has expired. Please sign in again.'
-      );
-    }
-
-    // -----------------------------------
-    // GENERATE PDF ATTACHMENT
-    // -----------------------------------
-    button.innerHTML = 'GENERATING PDF…';
-    const pdfAttachment = await generateQuotePdfAttachment(savedQuote);
-
-    // -----------------------------------
-    // CALL EDGE FUNCTION
-    // -----------------------------------
-    button.innerHTML = 'SENDING…';
-    const response = await fetch(
-      `${SUPABASE_URL}/functions/v1/send-quote`,
-      {
-        method: 'POST',
-
-        headers: {
-          'Content-Type': 'application/json',
-
-          'Authorization':
-            `Bearer ${session.access_token}`,
-
-          'apikey':
-            SUPABASE_PUBLISHABLE_KEY
-        },
-
-        body: JSON.stringify({
-          to,
-
-          clientName:
-            savedQuote.contactName ||
-            savedQuote.clientName ||
-            '',
-
-          quoteNumber:
-            savedQuote.quoteNumber,
-
-          projectName:
-            savedQuote.projectName,
-
-          total:
-            money(savedQuote.total),
-
-          paymentPlan:
-            savedQuote.paymentPlan ||
-            'one_time',
-
-          subject,
-
-          message,
-
-          pdfBase64: pdfAttachment.base64,
-          pdfFilename: pdfAttachment.filename
-        })
+        // V2.3: full quote data is sent to the Edge Function so the PDF can
+        // be generated server-side. No PDF library is loaded into the admin page.
+        quote: {
+          clientBusiness: savedQuote.clientName || '',
+          clientContact: savedQuote.contactName || '',
+          clientEmail: savedQuote.clientEmail || '',
+          issueDate: savedQuote.issueDate || '',
+          expiryDate: savedQuote.expiryDate || '',
+          items: (savedQuote.items || []).map(item => ({
+            description: item.description || '',
+            qty: Number(item.qty || 0),
+            rate: Number(item.rate || 0),
+            amount: Number(item.qty || 0) * Number(item.rate || 0)
+          })),
+          subtotal: Number(savedQuote.subtotal || 0),
+          discount: Number(savedQuote.discount || 0),
+          gstRate: Number(savedQuote.gstRate || 0),
+          gst: Number(savedQuote.gst || 0),
+          total: Number(savedQuote.total || 0),
+          depositRate: Number(savedQuote.depositRate || 0),
+          deposit: Number(savedQuote.deposit || 0),
+          notes: savedQuote.notes || '',
+          terms: savedQuote.terms || '',
+          stripeUrl: savedQuote.stripeUrl || '',
+          business: {
+            name: settings.businessName || 'Phase Shift Studio',
+            email: settings.email || '',
+            abn: settings.abn || '',
+            phone: settings.phone || '',
+            address: settings.address || 'Queensland, Australia'
+          }
+        }
       }
-    );
+    });
 
-    // -----------------------------------
-    // READ FUNCTION RESPONSE
-    // -----------------------------------
-    let result;
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || 'Email could not be sent.');
 
-    try {
-      result = await response.json();
-    } catch {
-      result = null;
-    }
+    const sentAt = new Date().toISOString();
 
-    if (!response.ok) {
-      throw new Error(
-        result?.error ||
-        `Email function returned ${response.status}`
-      );
-    }
-
-    if (!result?.success) {
-      throw new Error(
-        result?.error ||
-        'The email function did not confirm delivery.'
-      );
-    }
-
-    // -----------------------------------
-    // MARK QUOTE AS SENT
-    // -----------------------------------
-    const sentAt =
-      new Date().toISOString();
-
-    const {
-      error: quoteUpdateError
-    } = await db
+    const { error: updateError } = await db
       .from('quotes')
       .update({
         status: 'SENT',
@@ -1023,43 +858,18 @@ async function sendQuoteEmail() {
       })
       .eq('id', savedId);
 
-    if (quoteUpdateError) {
-      throw quoteUpdateError;
-    }
+    if (updateError) throw updateError;
 
-    // -----------------------------------
-    // REFRESH ADMIN DATA
-    // -----------------------------------
     await loadLiveData();
 
-    form.elements.id.value =
-      savedId;
-
-    form.elements.status.value =
-      'SENT';
-
+    form.elements.id.value = savedId;
+    form.elements.status.value = 'SENT';
     updateEmailSendState(sentAt);
 
-    // -----------------------------------
-    // SUCCESS
-    // -----------------------------------
-    alert(
-      `Quote ${savedQuote.quoteNumber} was sent successfully to ${to}.`
-    );
-
-  } catch (sendError) {
-    console.error(
-      'Send quote email error:',
-      sendError
-    );
-
-    alert(
-      `Could not send quote email.\n\n${
-        sendError?.message ||
-        'Unknown error'
-      }`
-    );
-
+    alert(`Quote ${savedQuote.quoteNumber} was sent successfully to ${to}.`);
+  } catch (error) {
+    console.error('Send quote email error:', error);
+    alert(`Could not send quote email.\n\n${error.message}`);
   } finally {
     button.disabled = false;
     button.innerHTML = oldHtml;
