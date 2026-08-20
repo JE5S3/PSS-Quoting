@@ -133,7 +133,7 @@
           <label>DEFAULT DEPOSIT %
             <input name="depositRate" type="number" min="0" max="100" step="1" value="50">
           </label>
-          <label class="full">DEFAULT TERMS<textarea name="terms" rows="5">Quote valid for 14 days. Work commences once the agreed deposit has been received. Final balance is due on completion unless otherwise agreed in writing.</textarea></label>
+          <label class="full">DEFAULT TERMS<textarea name="terms" rows="5">Quote valid for 30 days. Work commences once the agreed deposit has been received. Final balance is due on completion unless otherwise agreed in writing. By accepting this quote, the client grants Phase Shift Studio permission to display the completed public-facing website, screenshots, business name and other publicly available project visuals in Phase Shift Studio's portfolio, website, social media and promotional materials, unless otherwise agreed in writing. Confidential or non-public client information will not be displayed.</textarea></label>
           <button class="btn btn-primary full" type="submit">SAVE SETTINGS <span>↗</span></button>
           <p class="form-status full" id="settings-status"></p>
         </form>
@@ -151,7 +151,10 @@
       <input type="hidden" name="id" />
 
       <div class="form-section">
-        <p>01 // CLIENT</p>
+        <div class="form-section-heading">
+          <p>01 // CLIENT</p>
+          <button type="button" class="text-btn" id="select-customer-btn">SELECT EXISTING CUSTOMER →</button>
+        </div>
         <div class="form-grid">
           <label>CLIENT / BUSINESS<input name="clientName" required placeholder="Client or business name"></label>
           <label>CONTACT PERSON<input name="contactName" placeholder="Optional"></label>
@@ -171,6 +174,14 @@
           </label>
           <label>ISSUE DATE<input name="issueDate" type="date" required></label>
           <label>EXPIRY DATE<input name="expiryDate" type="date"></label>
+          <div class="full">
+            <span class="field-label">PAYMENT PLAN</span>
+            <div class="payment-plan-toggle" role="group" aria-label="Quote payment plan">
+              <button type="button" class="payment-plan-btn active" data-payment-plan="one_time">SINGLE PAYMENT</button>
+              <button type="button" class="payment-plan-btn" data-payment-plan="monthly">MONTHLY</button>
+            </div>
+            <input type="hidden" name="paymentPlan" value="one_time">
+          </div>
         </div>
       </div>
 
@@ -197,7 +208,7 @@
             <div><span>DISCOUNT</span><strong id="calc-discount">-$0.00</strong></div>
             <div><span>GST</span><strong id="calc-gst">$0.00</strong></div>
             <div class="grand"><span>TOTAL</span><strong id="calc-total">$0.00</strong></div>
-            <div><span>DEPOSIT</span><strong id="calc-deposit">$0.00</strong></div>
+            <div id="deposit-total-row"><span>DEPOSIT</span><strong id="calc-deposit">$0.00</strong></div>
           </div>
         </div>
       </div>
@@ -212,11 +223,26 @@
 
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost danger" id="delete-quote-btn" hidden>DELETE</button>
+        <button type="button" class="btn btn-ghost" id="duplicate-quote-btn" hidden>DUPLICATE + SWITCH PLAN</button>
         <span></span>
-        <button type="button" class="btn btn-ghost" id="preview-quote-btn">PREVIEW / PRINT</button>
+        <button type="button" class="btn btn-ghost" id="preview-quote-btn">PREVIEW</button>
         <button type="submit" class="btn btn-primary">SAVE QUOTE <span>↗</span></button>
       </div>
     </form>
+  </dialog>
+
+
+  <dialog id="customer-picker-dialog">
+    <div class="picker-modal">
+      <div class="modal-head">
+        <div><span class="section-label">[ CUSTOMERS ]</span><h2>SELECT CUSTOMER</h2></div>
+        <button class="icon-btn" id="close-customer-picker" aria-label="Close">×</button>
+      </div>
+      <div class="picker-toolbar">
+        <input id="customer-picker-search" type="search" placeholder="SEARCH EXISTING CUSTOMERS…">
+      </div>
+      <div class="customer-picker-list" id="customer-picker-list"></div>
+    </div>
   </dialog>
 
   <dialog id="preview-dialog">
@@ -227,7 +253,7 @@
       </div>
       <div id="quote-preview"></div>
       <div class="preview-actions no-print">
-        <button class="btn btn-ghost" id="print-btn">PRINT / SAVE PDF</button>
+        <button class="btn btn-ghost" id="print-btn">DOWNLOAD / PRINT PDF</button>
         <a class="btn btn-primary" id="stripe-btn" href="#" target="_blank" rel="noopener" hidden>OPEN STRIPE PAYMENT <span>↗</span></a>
       </div>
     </div>
