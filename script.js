@@ -758,6 +758,90 @@ duplicateBtn.onclick = async () => {
 };
 
 
+
+// -------------------------
+// PDF EMAIL ATTACHMENT
+// -------------------------
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  let binary = '';
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+
+  return btoa(binary);
+}
+
+async function generateQuotePdfAttachment(rawQuote) {
+  if (typeof window.html2pdf !== 'function') {
+    throw new Error('PDF generator did not load. Refresh the page and try again.');
+  }
+
+  const q = rawQuote.id ? enrichQuote(rawQuote) : rawQuote;
+  const exportRoot = document.createElement('div');
+  exportRoot.className = 'pdf-export-root';
+  exportRoot.style.position = 'fixed';
+  exportRoot.style.left = '-10000px';
+  exportRoot.style.top = '0';
+  exportRoot.style.width = '794px';
+  exportRoot.style.background = '#ffffff';
+  exportRoot.style.zIndex = '-1';
+  exportRoot.innerHTML = buildQuoteHtml(q);
+  document.body.appendChild(exportRoot);
+
+  try {
+    const safeNumber = String(q.quoteNumber || 'Quote')
+      .replace(/[^a-z0-9_-]+/gi, '-')
+      .replace(/^-+|-+$/g, '');
+
+    const filename = `Phase-Shift-Studio-${safeNumber || 'Quote'}.pdf`;
+
+    const worker = window.html2pdf()
+      .set({
+        margin: [8, 8, 8, 8],
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait'
+        },
+        pagebreak: {
+          mode: ['css', 'legacy'],
+          avoid: ['.print-head', '.quote-title', '.print-totals', '.print-notes', '.payment-box']
+        }
+      })
+      .from(exportRoot)
+      .toPdf();
+
+    const arrayBuffer = await worker.outputPdf('arraybuffer');
+
+    if (!arrayBuffer || !arrayBuffer.byteLength) {
+      throw new Error('The quote PDF could not be generated.');
+    }
+
+    if (arrayBuffer.byteLength > 7 * 1024 * 1024) {
+      throw new Error('The generated quote PDF is too large to email.');
+    }
+
+    return {
+      filename,
+      base64: arrayBufferToBase64(arrayBuffer),
+      bytes: arrayBuffer.byteLength
+    };
+  } finally {
+    exportRoot.remove();
+  }
+}
+
 async function sendQuoteEmail() {
   if (!currentUser) {
     alert('You must be signed in to send a quote.');
@@ -840,8 +924,15 @@ async function sendQuoteEmail() {
     }
 
     // -----------------------------------
+    // GENERATE PDF ATTACHMENT
+    // -----------------------------------
+    button.innerHTML = 'GENERATING PDF…';
+    const pdfAttachment = await generateQuotePdfAttachment(savedQuote);
+
+    // -----------------------------------
     // CALL EDGE FUNCTION
     // -----------------------------------
+    button.innerHTML = 'SENDING…';
     const response = await fetch(
       `${SUPABASE_URL}/functions/v1/send-quote`,
       {
@@ -880,7 +971,10 @@ async function sendQuoteEmail() {
 
           subject,
 
-          message
+          message,
+
+          pdfBase64: pdfAttachment.base64,
+          pdfFilename: pdfAttachment.filename
         })
       }
     );
