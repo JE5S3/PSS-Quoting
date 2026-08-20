@@ -970,7 +970,25 @@ document.getElementById('print-btn').onclick = () => {
   `;
 
   printWindow.document.open();
-  printWindow.document.write(`<!DOCTYPE html><html><head><title>Phase Shift Studio Quote</title><style>${printCss}</style></head><body>${quoteMarkup}<script>window.onload=()=>setTimeout(()=>window.print(),150);<\/script></body></html>`);
+  printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Phase Shift Studio Quote</title>
+  <style>${printCss}</style>
+</head>
+<body>
+  ${quoteMarkup}
+  <script>
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        window.focus();
+        window.print();
+      }, 400);
+    });
+  <\/script>
+</body>
+</html>`);
   printWindow.document.close();
 };
 

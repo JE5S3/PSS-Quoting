@@ -37,12 +37,6 @@ dialog{border:0;padding:0;background:transparent;width:min(1180px,calc(100% - 30
 #quote-preview{padding:38px}.print-sheet{max-width:900px;margin:0 auto;background:#fff;color:#111;padding:48px;border:1px solid #ddd}.print-head{display:flex;justify-content:space-between;border-bottom:3px solid #111;padding-bottom:24px}.print-brand{display:flex;gap:12px;align-items:center}.print-brand .brand-mark{width:44px;height:44px}.print-meta{text-align:right;font:10px/1.65 monospace}.quote-title{display:grid;grid-template-columns:1fr 1fr;gap:30px;padding:36px 0}.quote-title h2{font-size:48px;letter-spacing:-.06em;margin:0}.quote-title p{margin:6px 0;font-size:12px}.print-table{width:100%;border-collapse:collapse}.print-table th,.print-table td{padding:13px 8px;border-bottom:1px solid #ddd}.print-table th{font:9px monospace}.print-table td:nth-child(n+2),.print-table th:nth-child(n+2){text-align:right}.print-totals{width:min(420px,100%);margin:28px 0 0 auto}.print-totals div{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #ddd;font-size:12px}.print-totals .total{font-size:20px;font-weight:900;border-bottom:2px solid #111}.print-notes{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:42px;border-top:1px solid #111;padding-top:25px}.print-notes h4{font:9px monospace;color:#e31b23}.print-notes p{white-space:pre-wrap;font-size:11px;line-height:1.55}.payment-box{margin-top:28px;padding:18px;background:#f7f7f4;border-left:5px solid #e31b23;font-size:12px}.preview-actions{display:flex;justify-content:flex-end;gap:10px;padding:20px 38px;border-top:1px solid var(--black)}
 @media(max-width:1050px){.top-actions .mode-pill,.top-actions .btn-ghost{display:none}.app-shell{grid-template-columns:180px 1fr}.workspace{padding:35px 25px}.stats-grid{grid-template-columns:repeat(2,1fr)}.stats-grid article:nth-child(2){border-right:0}.customer-grid{grid-template-columns:repeat(2,1fr)}.totals-layout{grid-template-columns:1fr}.line-item{grid-template-columns:1fr 70px 120px 100px 32px}}
 @media(max-width:720px){.topbar{height:64px;padding:0 12px}.brand small{display:none}.top-actions{gap:6px}.top-actions .btn{min-width:0;padding:10px}.app-shell{display:block}.sidebar{height:auto;position:sticky;top:64px;z-index:20;border-right:0;border-bottom:1px solid var(--black);padding:0 10px;flex-direction:row;overflow:auto}.nav-kicker,.sidebar-foot{display:none}.nav-item{width:auto;min-width:max-content;border-bottom:0;padding:14px 12px}.nav-item span{display:none}.workspace{padding:25px 14px}.page-head{grid-template-columns:1fr}.page-head h1{font-size:55px}.page-head>p{display:none}.stats-grid{grid-template-columns:1fr}.stats-grid article{border-right:0;border-bottom:1px solid var(--black);min-height:140px}.toolbar{grid-template-columns:1fr}.toolbar input{border-right:0;border-bottom:1px solid var(--black)}.customer-grid{grid-template-columns:1fr}.settings-card,.form-grid{grid-template-columns:1fr}.settings-card .full,.form-grid .full{grid-column:1}.line-item{grid-template-columns:1fr 55px 90px 28px}.line-item .item-total{grid-column:1/4;text-align:left}.totals-layout{gap:20px}.modal-actions{grid-template-columns:1fr 1fr}.modal-actions span{display:none}.quote-title,.print-notes{grid-template-columns:1fr}.print-sheet{padding:24px}.preview-actions{flex-direction:column}}
-#quote-preview,#quote-preview *{visibility:visible!important}
-  #quote-preview{position:absolute;inset:0;padding:0}
-  .print-sheet{border:0;padding:0;max-width:none}
-  .no-print,.preview-actions{display:none!important}
-  @page{size:A4;margin:14mm}
-}
 
 
 /* =========================
@@ -203,4 +197,43 @@ input[type="number"]::-webkit-outer-spin-button{
   .form-section-heading{align-items:flex-start;flex-direction:column}
   .customer-picker-list{grid-template-columns:1fr}
   .modal-actions{grid-template-columns:1fr 1fr}
+}
+
+
+/* V2.1 — QUOTE PREVIEW FIX */
+#preview-dialog {
+  width:min(1180px, calc(100% - 30px));
+  max-height:94vh;
+}
+#preview-dialog[open] {
+  display:block;
+}
+#preview-dialog .preview-modal {
+  display:block;
+  width:100%;
+  max-height:94vh;
+  overflow:auto;
+  background:var(--white);
+}
+#quote-preview {
+  position:static;
+  inset:auto;
+  display:block;
+  visibility:visible;
+  padding:38px;
+}
+#quote-preview .print-sheet {
+  display:block;
+  visibility:visible;
+  position:static;
+  border:1px solid #ddd;
+  padding:48px;
+}
+#preview-dialog .preview-actions {
+  display:flex;
+}
+@media(max-width:720px){
+  #quote-preview{padding:14px}
+  #quote-preview .print-sheet{padding:24px}
+  #preview-dialog .preview-actions{display:flex;flex-direction:column}
 }
