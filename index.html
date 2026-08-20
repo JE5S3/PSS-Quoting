@@ -221,6 +221,29 @@
         </div>
       </div>
 
+
+      <div class="form-section email-section">
+        <div class="form-section-heading">
+          <p>06 // EMAIL QUOTE</p>
+          <span class="email-send-state" id="email-send-state">NOT SENT</span>
+        </div>
+        <div class="form-grid">
+          <label class="full">TO
+            <input name="emailTo" type="email" placeholder="client@business.com" />
+          </label>
+          <label class="full">SUBJECT
+            <input name="emailSubject" type="text" placeholder="Phase Shift Studio Quote PSS-0001" />
+          </label>
+          <label class="full">MESSAGE
+            <textarea name="emailMessage" rows="7" placeholder="Write the message you want the client to receive with the quote..."></textarea>
+          </label>
+        </div>
+        <div class="email-actions">
+          <p>Replies will go to your configured Phase Shift Studio reply-to inbox.</p>
+          <button type="button" class="btn btn-primary" id="send-quote-email-btn">SEND QUOTE BY EMAIL <span>↗</span></button>
+        </div>
+      </div>
+
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost danger" id="delete-quote-btn" hidden>DELETE</button>
         <button type="button" class="btn btn-ghost" id="duplicate-quote-btn" hidden>DUPLICATE + SWITCH PLAN</button>

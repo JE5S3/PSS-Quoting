@@ -237,3 +237,38 @@ input[type="number"]::-webkit-outer-spin-button{
   #quote-preview .print-sheet{padding:24px}
   #preview-dialog .preview-actions{display:flex;flex-direction:column}
 }
+
+
+/* V2.2 — QUOTE EMAIL COMPOSER */
+.email-section{background:#fff}
+.email-send-state{
+  font:9px monospace;
+  color:var(--muted);
+  border:1px solid var(--line);
+  padding:6px 8px;
+}
+.email-send-state.sent{
+  color:#fff;
+  background:var(--black);
+  border-color:var(--black);
+}
+.email-actions{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:18px;
+  margin-top:20px;
+}
+.email-actions p{
+  margin:0;
+  max-width:560px;
+  color:var(--muted);
+  font:9px/1.5 monospace;
+}
+#send-quote-email-btn:disabled{
+  opacity:.55;
+  cursor:wait;
+}
+@media(max-width:720px){
+  .email-actions{align-items:stretch;flex-direction:column}
+}

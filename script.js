@@ -206,6 +206,9 @@ function fromDbQuote(q) {
     terms: q.terms || '',
     aiGenerated: q.ai_generated,
     aiNotes: q.ai_notes || '',
+    emailSubject: q.email_subject || '',
+    emailMessage: q.email_message || '',
+    sentAt: q.sent_at || null,
     createdAt: q.created_at,
     updatedAt: q.updated_at
   };
@@ -298,6 +301,9 @@ async function saveQuoteToDb(quote) {
     terms: quote.terms || null,
     ai_generated: Boolean(quote.aiGenerated),
     ai_notes: quote.aiNotes || null,
+    email_subject: quote.emailSubject || null,
+    email_message: quote.emailMessage || null,
+    sent_at: quote.sentAt || null,
     updated_at: new Date().toISOString()
   };
 
@@ -500,10 +506,45 @@ function renderCustomerPicker() {
       form.elements.contactName.value = c.contact_name || '';
       form.elements.clientEmail.value = c.email || '';
       form.elements.clientPhone.value = c.phone || '';
+      form.elements.emailTo.value = c.email || '';
       customerPickerDialog.close();
     });
   });
 }
+
+
+function defaultEmailMessage(q = {}) {
+  const name = (q.contactName || q.clientName || '').trim();
+  const greeting = name ? `Hi ${name},` : 'Hi,';
+  const project = q.projectName ? ` for ${q.projectName}` : '';
+
+  return `${greeting}
+
+Thanks for discussing your project with Phase Shift Studio.
+
+Please find the quote${project} below. If you have any questions or would like any adjustments, simply reply to this email.
+
+Regards,
+Phase Shift Studio`;
+}
+
+function updateEmailSendState(sentAt) {
+  const el = document.getElementById('email-send-state');
+  if (!el) return;
+
+  if (sentAt) {
+    const date = new Date(sentAt);
+    el.textContent = `SENT ${date.toLocaleString('en-AU')}`;
+    el.classList.add('sent');
+  } else {
+    el.textContent = 'NOT SENT';
+    el.classList.remove('sent');
+  }
+}
+
+form.elements.clientEmail.addEventListener('input', () => {
+  form.elements.emailTo.value = form.elements.clientEmail.value;
+});
 
 function openQuote(id=null) {
   form.reset();
@@ -534,6 +575,10 @@ function openQuote(id=null) {
     form.elements.stripeUrl.value = q.stripeUrl || '';
     form.elements.notes.value = q.notes || '';
     form.elements.terms.value = q.terms || settings.terms;
+    form.elements.emailTo.value = q.clientEmail || '';
+    form.elements.emailSubject.value = q.emailSubject || `Phase Shift Studio Quote ${q.quoteNumber}`;
+    form.elements.emailMessage.value = q.emailMessage || defaultEmailMessage(q);
+    updateEmailSendState(q.sentAt);
     setPaymentPlan(q.paymentPlan || 'one_time');
     q.items.forEach(addItem);
   } else {
@@ -542,6 +587,10 @@ function openQuote(id=null) {
     form.elements.gstRate.value = settings.gstRate;
     form.elements.depositRate.value = settings.depositRate;
     form.elements.terms.value = settings.terms;
+    const newNumber = nextQuoteNumber();
+    form.elements.emailSubject.value = `Phase Shift Studio Quote ${newNumber}`;
+    form.elements.emailMessage.value = defaultEmailMessage({ quoteNumber: newNumber });
+    updateEmailSendState(null);
     setPaymentPlan('one_time');
     addItem({
       description: 'Custom website design + development',
@@ -635,6 +684,9 @@ function formToQuote() {
     stripeUrl: fd.get('stripeUrl').trim(),
     notes: fd.get('notes').trim(),
     terms: fd.get('terms').trim(),
+    emailSubject: fd.get('emailSubject').trim(),
+    emailMessage: fd.get('emailMessage').trim(),
+    sentAt: existing?.sentAt || null,
     aiGenerated: existing?.aiGenerated || false,
     aiNotes: existing?.aiNotes || '',
     ...totals
@@ -704,6 +756,94 @@ duplicateBtn.onclick = async () => {
     alert(`Could not duplicate quote.\n\n${error.message}`);
   }
 };
+
+
+async function sendQuoteEmail() {
+  if (!currentUser) {
+    alert('You must be signed in to send a quote.');
+    return;
+  }
+
+  const quote = formToQuote();
+  const to = (form.elements.emailTo.value || quote.clientEmail || '').trim();
+  const subject = (form.elements.emailSubject.value || `Phase Shift Studio Quote ${quote.quoteNumber}`).trim();
+  const message = (form.elements.emailMessage.value || '').trim();
+
+  if (!to) {
+    alert('Enter a client email address before sending.');
+    form.elements.emailTo.focus();
+    return;
+  }
+
+  if (!message) {
+    alert('Add a message to accompany the quote.');
+    form.elements.emailMessage.focus();
+    return;
+  }
+
+  const button = document.getElementById('send-quote-email-btn');
+  const oldHtml = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = 'SENDING…';
+
+  try {
+    const savedId = await saveQuoteToDb({
+      ...quote,
+      emailSubject: subject,
+      emailMessage: message
+    });
+
+    const savedBase = quotes.find(q => q.id === savedId);
+    const savedQuote = savedBase ? enrichQuote(savedBase) : quote;
+
+    const { data, error } = await db.functions.invoke('send-quote', {
+      body: {
+        to,
+        clientName: savedQuote.contactName || savedQuote.clientName || '',
+        quoteNumber: savedQuote.quoteNumber,
+        projectName: savedQuote.projectName,
+        total: money(savedQuote.total),
+        paymentPlan: savedQuote.paymentPlan || 'one_time',
+        subject,
+        message
+      }
+    });
+
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || 'Email could not be sent.');
+
+    const sentAt = new Date().toISOString();
+
+    const { error: updateError } = await db
+      .from('quotes')
+      .update({
+        status: 'SENT',
+        email_subject: subject,
+        email_message: message,
+        sent_at: sentAt,
+        updated_at: sentAt
+      })
+      .eq('id', savedId);
+
+    if (updateError) throw updateError;
+
+    await loadLiveData();
+
+    form.elements.id.value = savedId;
+    form.elements.status.value = 'SENT';
+    updateEmailSendState(sentAt);
+
+    alert(`Quote ${savedQuote.quoteNumber} was sent successfully to ${to}.`);
+  } catch (error) {
+    console.error('Send quote email error:', error);
+    alert(`Could not send quote email.\n\n${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.innerHTML = oldHtml;
+  }
+}
+
+document.getElementById('send-quote-email-btn').addEventListener('click', sendQuoteEmail);
 
 // -------------------------
 // DASHBOARD / LISTS
