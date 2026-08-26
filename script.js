@@ -208,6 +208,9 @@ function fromDbQuote(q) {
     paidCurrency: (q.paid_currency || 'AUD').toUpperCase(),
     paidAt: q.paid_at || null,
     projectStatus: q.project_status || 'in_progress',
+    codeLink: q.code_link || '',
+    websiteLink: q.website_link || '',
+    projectNotes: q.project_notes || '',
     notes: q.notes || '',
     terms: q.terms || '',
     aiGenerated: q.ai_generated,
@@ -309,6 +312,9 @@ async function saveQuoteToDb(quote) {
     deposit_amount: quote.deposit,
     stripe_payment_url: quote.stripeUrl || null,
     project_status: quote.projectStatus || 'in_progress',
+    code_link: quote.codeLink || null,
+    website_link: quote.websiteLink || null,
+    project_notes: quote.projectNotes || null,
     notes: quote.notes || null,
     terms: quote.terms || null,
     ai_generated: Boolean(quote.aiGenerated),
@@ -1006,7 +1012,8 @@ function projectDetailRow(q) {
     <div class="project-detail-grid">
       <section><span>JOB DESCRIPTION</span>${items}${e.notes ? `<p class="project-notes">${escapeHtml(e.notes)}</p>` : ''}</section>
       <section><span>CONTACT DETAILS</span><p><strong>${escapeHtml(e.contactName || e.clientName || '—')}</strong><br>${escapeHtml(e.clientEmail || 'No email')}<br>${escapeHtml(e.clientPhone || 'No phone')}</p></section>
-      <section><span>PAYMENT DETAILS</span><p>Quote total: <strong>${money(e.total)}${e.paymentPlan === 'monthly' ? ' / month' : ''}</strong><br>${e.paymentPlan === 'monthly' ? `Monthly payment: <strong>${money(e.total)}</strong>` : `Deposit quoted: <strong>${money(e.deposit)}</strong><br>Payment received: <strong>${money(e.paidAmount || e.deposit || e.total)}</strong>`}${e.paidAt ? `<br>Paid: ${new Date(e.paidAt).toLocaleDateString('en-AU')}` : ''}</p></section>
+      <section><span>PAYMENT DETAILS</span><p>Quote total: <strong>${money(e.total)}${e.paymentPlan === 'monthly' ? ' / month' : ''}</strong><br>${e.paymentPlan === 'monthly' ? `Latest payment recorded: <strong>${money(e.paidAmount)}</strong><br><small>Cumulative monthly revenue is not yet tracked.</small>` : `Deposit quoted: <strong>${money(e.deposit)}</strong><br>Payment received: <strong>${money(e.paidAmount || e.deposit || e.total)}</strong>`}${e.paidAt ? `<br>Paid: ${new Date(e.paidAt).toLocaleDateString('en-AU')}` : ''}</p></section>
+      <section class="project-edit-section"><span>PROJECT LINKS & NOTES</span><label>CODE LINK<input type="url" data-project-code value="${escapeAttr(e.codeLink)}" placeholder="https://github.com/..."></label><label>WEBSITE LINK<input type="url" data-project-website value="${escapeAttr(e.websiteLink)}" placeholder="https://..."></label><label>INTERNAL NOTES<textarea data-project-notes rows="4" placeholder="Project notes…">${escapeHtml(e.projectNotes)}</textarea></label><button class="project-save" type="button" data-save-project="${e.id}">SAVE PROJECT DETAILS</button></section>
     </div>
   </td></tr>`;
 }
@@ -1046,6 +1053,34 @@ function renderProjects() {
       select.value = previous;
       select.disabled = false;
       alert(`Could not update project status.\n\n${error.message}`);
+    }
+  }));
+
+  document.querySelectorAll('[data-save-project]').forEach(button => button.addEventListener('click', async () => {
+    const detail = button.closest('.project-detail');
+    const payload = {
+      code_link: detail.querySelector('[data-project-code]').value.trim() || null,
+      website_link: detail.querySelector('[data-project-website]').value.trim() || null,
+      project_notes: detail.querySelector('[data-project-notes]').value.trim() || null,
+      updated_at: new Date().toISOString()
+    };
+    button.disabled = true;
+    button.textContent = 'SAVING…';
+    try {
+      const { error } = await db.from('quotes').update(payload).eq('id', button.dataset.saveProject);
+      if (error) throw error;
+      const quote = quotes.find(q => q.id === button.dataset.saveProject);
+      if (quote) {
+        quote.codeLink = payload.code_link || '';
+        quote.websiteLink = payload.website_link || '';
+        quote.projectNotes = payload.project_notes || '';
+      }
+      button.textContent = 'SAVED';
+      setTimeout(() => { button.disabled = false; button.textContent = 'SAVE PROJECT DETAILS'; }, 1200);
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = 'SAVE PROJECT DETAILS';
+      alert(`Could not save project details.\n\n${error.message}`);
     }
   }));
 }
