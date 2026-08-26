@@ -34,6 +34,7 @@ let quotes = [];
 let customers = [];
 let currentUser = null;
 let projectFilter = 'all';
+let projectStageFilter = 'all';
 
 const authScreen = document.getElementById('auth-screen');
 const loginForm = document.getElementById('login-form');
@@ -206,6 +207,7 @@ function fromDbQuote(q) {
     paidAmount: Number(q.paid_amount || 0),
     paidCurrency: (q.paid_currency || 'AUD').toUpperCase(),
     paidAt: q.paid_at || null,
+    projectStatus: q.project_status || 'in_progress',
     notes: q.notes || '',
     terms: q.terms || '',
     aiGenerated: q.ai_generated,
@@ -306,6 +308,7 @@ async function saveQuoteToDb(quote) {
     deposit_rate: quote.depositRate,
     deposit_amount: quote.deposit,
     stripe_payment_url: quote.stripeUrl || null,
+    project_status: quote.projectStatus || 'in_progress',
     notes: quote.notes || null,
     terms: quote.terms || null,
     ai_generated: Boolean(quote.aiGenerated),
@@ -413,6 +416,7 @@ function showView(view) {
 document.getElementById('new-quote-btn').onclick = () => openQuote();
 document.getElementById('new-quote-btn-2').onclick = () => openQuote();
 document.getElementById('refresh-btn').onclick = loadLiveData;
+document.getElementById('close-quote-dialog').onclick = () => dialog.close();
 
 function escapeAttr(s='') {
   return String(s)
@@ -579,7 +583,6 @@ function openQuote(id=null) {
     form.elements.issueDate.value = q.issueDate || '';
     form.elements.expiryDate.value = q.expiryDate || '';
     form.elements.discount.value = q.discount || 0;
-    form.elements.gstRate.value = q.gstRate ?? settings.gstRate;
     form.elements.depositRate.value = q.depositRate ?? settings.depositRate;
     form.elements.stripeUrl.value = q.stripeUrl || '';
     form.elements.notes.value = q.notes || '';
@@ -593,7 +596,6 @@ function openQuote(id=null) {
   } else {
     form.elements.issueDate.value = todayISO();
     form.elements.expiryDate.value = addDays(todayISO(), 30);
-    form.elements.gstRate.value = settings.gstRate;
     form.elements.depositRate.value = settings.depositRate;
     form.elements.terms.value = settings.terms;
     const newNumber = nextQuoteNumber();
@@ -636,7 +638,7 @@ function recalculate() {
   const t = totalsFrom(
     collectItems(),
     form.elements.discount.value,
-    form.elements.gstRate.value,
+    0,
     form.elements.depositRate.value,
     form.elements.paymentPlan.value
   );
@@ -644,7 +646,6 @@ function recalculate() {
   const suffix = form.elements.paymentPlan.value === 'monthly' ? ' / MO' : '';
   document.getElementById('calc-subtotal').textContent = money(t.subtotal) + suffix;
   document.getElementById('calc-discount').textContent = `-${money(t.discount)}` + suffix;
-  document.getElementById('calc-gst').textContent = money(t.gst) + suffix;
   document.getElementById('calc-total').textContent = money(t.total) + suffix;
   document.getElementById('calc-deposit').textContent = money(t.deposit);
 
@@ -656,7 +657,7 @@ function recalculate() {
   });
 }
 
-['discount','gstRate','depositRate'].forEach(name =>
+['discount','depositRate'].forEach(name =>
   form.elements[name].addEventListener('input', recalculate)
 );
 
@@ -668,7 +669,7 @@ function formToQuote() {
   const totals = totalsFrom(
     items,
     fd.get('discount'),
-    fd.get('gstRate'),
+    0,
     fd.get('depositRate'),
     fd.get('paymentPlan')
   );
@@ -688,7 +689,8 @@ function formToQuote() {
     expiryDate: fd.get('expiryDate'),
     items,
     discount: Number(fd.get('discount') || 0),
-    gstRate: Number(fd.get('gstRate') || 0),
+    gstRate: 0,
+    projectStatus: existing?.projectStatus || 'in_progress',
     depositRate: Number(fd.get('depositRate') || 0),
     stripeUrl: fd.get('stripeUrl').trim(),
     notes: fd.get('notes').trim(),
@@ -1014,11 +1016,12 @@ function renderProjects() {
   if (!body) return;
   const list = quotes.filter(q => q.status === 'PAID')
     .filter(q => projectFilter === 'all' || q.paymentPlan === projectFilter)
+    .filter(q => projectStageFilter === 'all' || q.projectStatus === projectStageFilter)
     .sort((a,b) => (b.paidAt || b.updatedAt || '').localeCompare(a.paidAt || a.updatedAt || ''));
 
   body.innerHTML = list.length ? list.map(q => {
     const e = enrichQuote(q);
-    return `<tr><td><strong>${escapeHtml(e.projectName || 'Untitled project')}</strong><br><small>${escapeHtml(e.quoteNumber)}</small></td><td>${escapeHtml(e.clientName || '—')}</td><td><span class="plan-tag">${e.paymentPlan === 'monthly' ? 'MONTHLY' : 'SINGLE SALE'}</span></td><td><strong>${projectPaymentLabel(e)}</strong></td><td><span class="status PAID">LIVE</span></td><td><button class="table-action" data-toggle-project="${e.id}" aria-expanded="false">OPEN →</button></td></tr>${projectDetailRow(e)}`;
+    return `<tr><td><strong>${escapeHtml(e.projectName || 'Untitled project')}</strong><br><small>${escapeHtml(e.quoteNumber)}</small></td><td>${escapeHtml(e.clientName || '—')}</td><td><span class="plan-tag">${e.paymentPlan === 'monthly' ? 'MONTHLY' : 'SINGLE SALE'}</span></td><td><strong>${projectPaymentLabel(e)}</strong></td><td><select class="project-stage stage-${e.projectStatus}" data-project-stage="${e.id}" aria-label="Project status for ${escapeAttr(e.projectName)}"><option value="in_progress"${e.projectStatus === 'in_progress' ? ' selected' : ''}>IN PROGRESS</option><option value="built"${e.projectStatus === 'built' ? ' selected' : ''}>BUILT</option><option value="ongoing"${e.projectStatus === 'ongoing' ? ' selected' : ''}>ON GOING</option><option value="posted"${e.projectStatus === 'posted' ? ' selected' : ''}>POSTED</option></select></td><td><button class="table-action" data-toggle-project="${e.id}" aria-expanded="false">OPEN →</button></td></tr>${projectDetailRow(e)}`;
   }).join('') : '<tr class="empty-row"><td colspan="6">NO PAID PROJECTS IN THIS VIEW.</td></tr>';
 
   document.querySelectorAll('[data-toggle-project]').forEach(btn => btn.addEventListener('click', () => {
@@ -1028,11 +1031,34 @@ function renderProjects() {
     btn.setAttribute('aria-expanded', String(opening));
     btn.textContent = opening ? 'CLOSE ↑' : 'OPEN →';
   }));
+
+  document.querySelectorAll('[data-project-stage]').forEach(select => select.addEventListener('change', async () => {
+    const previous = quotes.find(q => q.id === select.dataset.projectStage)?.projectStatus || 'in_progress';
+    const next = select.value;
+    select.disabled = true;
+    try {
+      const { error } = await db.from('quotes').update({ project_status: next, updated_at: new Date().toISOString() }).eq('id', select.dataset.projectStage);
+      if (error) throw error;
+      const quote = quotes.find(q => q.id === select.dataset.projectStage);
+      if (quote) quote.projectStatus = next;
+      renderProjects();
+    } catch (error) {
+      select.value = previous;
+      select.disabled = false;
+      alert(`Could not update project status.\n\n${error.message}`);
+    }
+  }));
 }
 
 document.querySelectorAll('[data-project-filter]').forEach(btn => btn.addEventListener('click', () => {
   projectFilter = btn.dataset.projectFilter;
   document.querySelectorAll('[data-project-filter]').forEach(filterBtn => filterBtn.classList.toggle('active', filterBtn === btn));
+  renderProjects();
+}));
+
+document.querySelectorAll('[data-stage-filter]').forEach(btn => btn.addEventListener('click', () => {
+  projectStageFilter = btn.dataset.stageFilter;
+  document.querySelectorAll('[data-stage-filter]').forEach(filterBtn => filterBtn.classList.toggle('active', filterBtn === btn));
   renderProjects();
 }));
 
@@ -1082,7 +1108,7 @@ settingsForm.addEventListener('submit', e => {
   e.preventDefault();
   const fd = new FormData(settingsForm);
   settings = Object.fromEntries(fd.entries());
-  settings.gstRate = Number(settings.gstRate);
+  settings.gstRate = 0;
   settings.depositRate = Number(settings.depositRate);
   saveSettingsLocal();
 

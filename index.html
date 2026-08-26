@@ -119,6 +119,13 @@
           <button class="project-filter" type="button" data-project-filter="monthly">MONTHLY</button>
           <button class="project-filter" type="button" data-project-filter="one_time">SINGLE SALE</button>
         </div>
+        <div class="project-filters stage-filters" role="group" aria-label="Filter live projects by status">
+          <button class="project-filter active" type="button" data-stage-filter="all">ALL STATUSES</button>
+          <button class="project-filter stage-in_progress" type="button" data-stage-filter="in_progress">IN PROGRESS</button>
+          <button class="project-filter stage-built" type="button" data-stage-filter="built">BUILT</button>
+          <button class="project-filter stage-ongoing" type="button" data-stage-filter="ongoing">ON GOING</button>
+          <button class="project-filter stage-posted" type="button" data-stage-filter="posted">POSTED</button>
+        </div>
         <div class="table-wrap"><table>
           <thead><tr><th>PROJECT</th><th>CLIENT</th><th>TYPE</th><th>PAYMENT</th><th>STATUS</th><th></th></tr></thead>
           <tbody id="projects-body"></tbody>
@@ -144,9 +151,6 @@
           <label>ABN<input name="abn" placeholder="ABN"></label>
           <label>PHONE<input name="phone" placeholder="Optional"></label>
           <label class="full">BUSINESS ADDRESS<input name="address" placeholder="Queensland, Australia"></label>
-          <label>DEFAULT GST %
-            <input name="gstRate" type="number" min="0" step="0.01" value="0">
-          </label>
           <label>DEFAULT DEPOSIT %
             <input name="depositRate" type="number" min="0" max="100" step="1" value="50">
           </label>
@@ -162,7 +166,7 @@
     <form method="dialog" class="quote-modal" id="quote-form">
       <div class="modal-head">
         <div><span class="section-label">[ QUOTE BUILDER ]</span><h2 id="quote-form-title">NEW QUOTE</h2></div>
-        <button class="icon-btn" value="cancel" aria-label="Close">×</button>
+        <button class="icon-btn" id="close-quote-dialog" type="button" aria-label="Close">×</button>
       </div>
 
       <input type="hidden" name="id" />
@@ -212,9 +216,6 @@
         <div class="totals-layout">
           <div class="form-grid">
             <label>DISCOUNT $<input name="discount" type="number" min="0" step="0.01" value="0"></label>
-            <label>GST %
-              <input name="gstRate" type="number" min="0" step="0.01" value="0">
-            </label>
             <label>DEPOSIT %
               <input name="depositRate" type="number" min="0" max="100" step="1" value="50">
             </label>
@@ -223,7 +224,6 @@
           <div class="totals-box">
             <div><span>SUBTOTAL</span><strong id="calc-subtotal">$0.00</strong></div>
             <div><span>DISCOUNT</span><strong id="calc-discount">-$0.00</strong></div>
-            <div><span>GST</span><strong id="calc-gst">$0.00</strong></div>
             <div class="grand"><span>TOTAL</span><strong id="calc-total">$0.00</strong></div>
             <div id="deposit-total-row"><span>DEPOSIT</span><strong id="calc-deposit">$0.00</strong></div>
           </div>
