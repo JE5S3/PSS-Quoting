@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Phase Shift Studio — Quote</title>
+  <link rel="stylesheet" href="quote.css">
+</head>
+<body>
+  <header class="client-topbar">
+    <a class="client-brand" href="https://phaseshiftstudio.com.au" aria-label="Phase Shift Studio">
+      <span class="brand-mark">P/S</span>
+      <span><strong>PHASE SHIFT STUDIO</strong><small>CLIENT QUOTE // SECURE LINK</small></span>
+    </a>
+  </header>
+
+  <main class="client-shell">
+    <section id="loading-state" class="state-card">
+      <span class="eyebrow">[ QUOTE ACCESS ]</span>
+      <h1>LOADING<br><em>QUOTE.</em></h1>
+      <p>Retrieving your Phase Shift Studio quote…</p>
+    </section>
+
+    <section id="error-state" class="state-card hidden">
+      <span class="eyebrow">[ LINK ERROR ]</span>
+      <h1>QUOTE<br><em>UNAVAILABLE.</em></h1>
+      <p id="error-message">This quote link is invalid or unavailable.</p>
+    </section>
+
+    <section id="quote-view" class="hidden">
+      <div class="quote-sheet">
+        <header class="quote-head">
+          <div class="quote-brand">
+            <span class="brand-mark">P/S</span>
+            <div>
+              <strong>Phase Shift Studio</strong>
+              <small>DESIGN // BUILD // LAUNCH</small>
+            </div>
+          </div>
+          <div class="business-meta" id="business-meta"></div>
+        </header>
+
+        <div class="quote-intro">
+          <div>
+            <span class="eyebrow" id="quote-type">[ QUOTE ]</span>
+            <h2 id="quote-number">PSS-0000</h2>
+            <p id="project-name"></p>
+          </div>
+          <div class="prepared">
+            <span class="eyebrow">PREPARED FOR</span>
+            <strong id="client-business"></strong>
+            <span id="client-contact"></span>
+            <span id="client-email"></span>
+            <small id="issue-date"></small>
+            <small id="expiry-date"></small>
+            <small id="payment-plan"></small>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="quote-table">
+            <thead>
+              <tr><th>DESCRIPTION</th><th>QTY</th><th>RATE</th><th>AMOUNT</th></tr>
+            </thead>
+            <tbody id="quote-items"></tbody>
+          </table>
+        </div>
+
+        <div class="totals-wrap">
+          <div class="totals" id="quote-totals"></div>
+        </div>
+
+        <div class="notes-grid">
+          <div>
+            <span class="eyebrow">PROJECT NOTES</span>
+            <p id="quote-notes"></p>
+          </div>
+          <div>
+            <span class="eyebrow">TERMS</span>
+            <p id="quote-terms"></p>
+          </div>
+        </div>
+      </div>
+
+      <section class="response-panel" id="response-panel">
+        <div id="awaiting-response">
+          <span class="eyebrow">[ CLIENT RESPONSE ]</span>
+          <h3>READY TO<br>PROCEED?</h3>
+          <p>Enter your name and confirm that you accept the quote and its terms.</p>
+
+          <label>YOUR FULL NAME
+            <input id="accepted-by" type="text" autocomplete="name" placeholder="Full name">
+          </label>
+
+          <label class="check-row">
+            <input id="accept-confirm" type="checkbox">
+            <span>I have reviewed this quote and agree to the quoted scope, pricing and terms.</span>
+          </label>
+
+          <div class="response-actions">
+            <button id="accept-btn" class="btn primary">ACCEPT QUOTE <span>↗</span></button>
+            <button id="show-decline-btn" class="btn ghost">DECLINE / REQUEST CHANGES</button>
+          </div>
+
+          <div id="decline-box" class="decline-box hidden">
+            <label>OPTIONAL MESSAGE
+              <textarea id="decline-reason" rows="4" placeholder="Tell us what you would like changed…"></textarea>
+            </label>
+            <button id="decline-btn" class="btn danger">SEND RESPONSE</button>
+          </div>
+        </div>
+
+        <div id="accepted-state" class="hidden">
+          <span class="eyebrow">[ ACCEPTED ]</span>
+          <h3>QUOTE<br>ACCEPTED ✓</h3>
+          <p id="accepted-copy"></p>
+          <a id="stripe-payment-btn" class="btn primary payment-btn hidden" href="#" rel="noopener">PAY DEPOSIT <span>↗</span></a>
+          <p id="payment-note" class="payment-note hidden">Your payment link will be supplied separately.</p>
+        </div>
+
+        <div id="declined-state" class="hidden">
+          <span class="eyebrow">[ RESPONSE RECEIVED ]</span>
+          <h3>THANK<br>YOU.</h3>
+          <p>Your response has been recorded. Phase Shift Studio can revise the quote if required.</p>
+        </div>
+
+        <div id="expired-state" class="hidden">
+          <span class="eyebrow">[ EXPIRED ]</span>
+          <h3>QUOTE<br>EXPIRED.</h3>
+          <p>This quote has passed its validity date. Please reply to the original email to request an updated quote.</p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="client-footer">PHASE SHIFT STUDIO // QUEENSLAND, AUSTRALIA</footer>
+  <script src="quote.js"></script>
+</body>
+</html>

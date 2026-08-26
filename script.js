@@ -209,6 +209,11 @@ function fromDbQuote(q) {
     emailSubject: q.email_subject || '',
     emailMessage: q.email_message || '',
     sentAt: q.sent_at || null,
+    acceptToken: q.accept_token || '',
+    acceptedAt: q.accepted_at || null,
+    acceptedBy: q.accepted_by || '',
+    declinedAt: q.declined_at || null,
+    declineReason: q.decline_reason || '',
     createdAt: q.created_at,
     updatedAt: q.updated_at
   };
@@ -806,6 +811,10 @@ async function sendQuoteEmail() {
         paymentPlan: savedQuote.paymentPlan || 'one_time',
         subject,
         message,
+
+        // V2.4: link the email to the public client quote page.
+        acceptToken: savedQuote.acceptToken || '',
+        quoteUrlBase: new URL('quote.html', window.location.href).href,
 
         // V2.3: full quote data is sent to the Edge Function so the PDF can
         // be generated server-side. No PDF library is loaded into the admin page.
