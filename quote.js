@@ -134,7 +134,9 @@ function renderStatus(q) {
     const note = document.getElementById('payment-note');
 
     if (q.status !== 'PAID' && q.stripeUrl) {
-      stripeBtn.href = q.stripeUrl;
+      const paymentUrl = new URL(q.stripeUrl);
+      paymentUrl.searchParams.set('client_reference_id', q.quoteNumber);
+      stripeBtn.href = paymentUrl.toString();
       stripeBtn.textContent =
         q.paymentPlan === 'monthly'
           ? 'START MONTHLY PAYMENT ↗'
