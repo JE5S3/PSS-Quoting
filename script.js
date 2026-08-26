@@ -18,10 +18,10 @@ const db = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 
 const SETTINGS_KEY = 'pss_quote_settings_live_v1';
 
-const money = n => new Intl.NumberFormat('en-AU', {
-  style: 'currency',
-  currency: 'AUD'
-}).format(Number(n || 0));
+const money = n => `A$${Number(n || 0).toLocaleString('en-AU', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})}`;
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 const addDays = (date, days) => {
@@ -58,7 +58,7 @@ function loadSettings() {
     abn: '',
     phone: '',
     address: 'Queensland, Australia',
-    gstRate: 10,
+    gstRate: 0,
     depositRate: 50,
     terms: "Quote valid for 30 days. Work commences once the agreed deposit has been received. Final balance is due on completion unless otherwise agreed in writing. By accepting this quote, the client grants Phase Shift Studio permission to display the completed public-facing website, screenshots, business name and other publicly available project visuals in Phase Shift Studio's portfolio, website, social media and promotional materials, unless otherwise agreed in writing. Confidential or non-public client information will not be displayed."
   };
@@ -557,7 +557,7 @@ function openQuote(id=null) {
   form.elements.id.value = '';
 
   document.getElementById('quote-form-title').textContent = id ? 'EDIT QUOTE' : 'NEW QUOTE';
-  deleteBtn.hidden = !id;
+  deleteBtn.hidden = !id || ['ACCEPTED', 'PAID'].includes(q?.status);
   duplicateBtn.hidden = !id;
 
   if (id) {
@@ -721,6 +721,12 @@ form.addEventListener('submit', async e => {
 deleteBtn.onclick = async () => {
   const id = form.elements.id.value;
   if (!id) return;
+
+  const quote = quotes.find(item => item.id === id);
+  if (quote && ['ACCEPTED', 'PAID'].includes(quote.status)) {
+    alert('Accepted and paid quotes are permanent business records and cannot be deleted.');
+    return;
+  }
 
   if (!confirm('Delete this quote permanently?')) return;
 
@@ -1093,7 +1099,7 @@ function buildQuoteHtml(raw) {
       <div class="print-totals">
         <div><span>Subtotal${monthly ? ' / month' : ''}</span><strong>${money(q.subtotal)}</strong></div>
         ${q.discount ? `<div><span>Discount${monthly ? ' / month' : ''}</span><strong>-${money(q.discount)}</strong></div>` : ''}
-        <div><span>GST (${q.gstRate}%)${monthly ? ' / month' : ''}</span><strong>${money(q.gst)}</strong></div>
+        ${q.gstRate ? `<div><span>GST (${q.gstRate}%)${monthly ? ' / month' : ''}</span><strong>${money(q.gst)}</strong></div>` : ''}
         <div class="total"><span>${monthly ? 'MONTHLY TOTAL' : 'TOTAL'}</span><strong>${money(q.total)}${monthly ? ' / month' : ''}</strong></div>
         ${monthly ? '' : `<div><span>Deposit (${q.depositRate}%)</span><strong>${money(q.deposit)}</strong></div>`}
       </div>

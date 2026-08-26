@@ -1,10 +1,10 @@
 const SUPABASE_URL = 'https://txvorfcyvxwmwpkctndg.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_wVhxl7xaz5GGeK5-mryMkw_hPDA904U';
 
-const money = n => new Intl.NumberFormat('en-AU', {
-  style: 'currency',
-  currency: 'AUD'
-}).format(Number(n || 0));
+const money = n => `A$${Number(n || 0).toLocaleString('en-AU', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+})}`;
 
 const params = new URLSearchParams(location.search);
 const token = params.get('token') || '';
@@ -90,7 +90,7 @@ function renderQuote(q) {
   const rows = [
     ['Subtotal', money(q.subtotal)],
     q.discount ? ['Discount', `-${money(q.discount)}`] : null,
-    [`GST (${q.gstRate || 0}%)`, money(q.gst)],
+    q.gstRate ? [`GST (${q.gstRate}%)`, money(q.gst)] : null,
     [q.paymentPlan === 'monthly' ? 'MONTHLY TOTAL' : 'TOTAL', money(q.total) + unit, true],
     q.paymentPlan !== 'monthly' && q.depositRate
       ? [`Deposit (${q.depositRate}%)`, money(q.deposit)]
