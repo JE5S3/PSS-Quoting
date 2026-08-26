@@ -33,6 +33,7 @@ const addDays = (date, days) => {
 let quotes = [];
 let customers = [];
 let currentUser = null;
+let projectFilter = 'all';
 
 const authScreen = document.getElementById('auth-screen');
 const loginForm = document.getElementById('login-form');
@@ -202,6 +203,9 @@ function fromDbQuote(q) {
     depositRate: Number(q.deposit_rate),
     deposit: Number(q.deposit_amount),
     stripeUrl: q.stripe_payment_url || '',
+    paidAmount: Number(q.paid_amount || 0),
+    paidCurrency: (q.paid_currency || 'AUD').toUpperCase(),
+    paidAt: q.paid_at || null,
     notes: q.notes || '',
     terms: q.terms || '',
     aiGenerated: q.ai_generated,
@@ -900,6 +904,7 @@ function renderAll() {
   renderStats();
   renderRecent();
   renderQuotes();
+  renderProjects();
   renderCustomers();
   fillSettings();
 }
@@ -981,6 +986,55 @@ function renderQuotes() {
 
 document.getElementById('quote-search').addEventListener('input', renderQuotes);
 document.getElementById('status-filter').addEventListener('change', renderQuotes);
+
+function projectPaymentLabel(q) {
+  if (q.paymentPlan === 'monthly') return `${money(q.total)} / MO`;
+  if (q.paidAmount > 0) return `${money(q.paidAmount)} RECEIVED`;
+  if (q.deposit > 0) return `${money(q.deposit)} DEPOSIT`;
+  return money(q.total);
+}
+
+function projectDetailRow(q) {
+  const e = enrichQuote(q);
+  const items = e.items.length
+    ? `<ul>${e.items.map(item => `<li><span>${escapeHtml(item.description || 'Line item')}</span><strong>${item.qty} × ${money(item.rate)}</strong></li>`).join('')}</ul>`
+    : '<p>No line-item job description was supplied.</p>';
+
+  return `<tr class="project-detail" data-project-detail="${e.id}" hidden><td colspan="6">
+    <div class="project-detail-grid">
+      <section><span>JOB DESCRIPTION</span>${items}${e.notes ? `<p class="project-notes">${escapeHtml(e.notes)}</p>` : ''}</section>
+      <section><span>CONTACT DETAILS</span><p><strong>${escapeHtml(e.contactName || e.clientName || '—')}</strong><br>${escapeHtml(e.clientEmail || 'No email')}<br>${escapeHtml(e.clientPhone || 'No phone')}</p></section>
+      <section><span>PAYMENT DETAILS</span><p>Quote total: <strong>${money(e.total)}${e.paymentPlan === 'monthly' ? ' / month' : ''}</strong><br>${e.paymentPlan === 'monthly' ? `Monthly payment: <strong>${money(e.total)}</strong>` : `Deposit quoted: <strong>${money(e.deposit)}</strong><br>Payment received: <strong>${money(e.paidAmount || e.deposit || e.total)}</strong>`}${e.paidAt ? `<br>Paid: ${new Date(e.paidAt).toLocaleDateString('en-AU')}` : ''}</p></section>
+    </div>
+  </td></tr>`;
+}
+
+function renderProjects() {
+  const body = document.getElementById('projects-body');
+  if (!body) return;
+  const list = quotes.filter(q => q.status === 'PAID')
+    .filter(q => projectFilter === 'all' || q.paymentPlan === projectFilter)
+    .sort((a,b) => (b.paidAt || b.updatedAt || '').localeCompare(a.paidAt || a.updatedAt || ''));
+
+  body.innerHTML = list.length ? list.map(q => {
+    const e = enrichQuote(q);
+    return `<tr><td><strong>${escapeHtml(e.projectName || 'Untitled project')}</strong><br><small>${escapeHtml(e.quoteNumber)}</small></td><td>${escapeHtml(e.clientName || '—')}</td><td><span class="plan-tag">${e.paymentPlan === 'monthly' ? 'MONTHLY' : 'SINGLE SALE'}</span></td><td><strong>${projectPaymentLabel(e)}</strong></td><td><span class="status PAID">LIVE</span></td><td><button class="table-action" data-toggle-project="${e.id}" aria-expanded="false">OPEN →</button></td></tr>${projectDetailRow(e)}`;
+  }).join('') : '<tr class="empty-row"><td colspan="6">NO PAID PROJECTS IN THIS VIEW.</td></tr>';
+
+  document.querySelectorAll('[data-toggle-project]').forEach(btn => btn.addEventListener('click', () => {
+    const detail = document.querySelector(`[data-project-detail="${btn.dataset.toggleProject}"]`);
+    const opening = detail.hidden;
+    detail.hidden = !opening;
+    btn.setAttribute('aria-expanded', String(opening));
+    btn.textContent = opening ? 'CLOSE ↑' : 'OPEN →';
+  }));
+}
+
+document.querySelectorAll('[data-project-filter]').forEach(btn => btn.addEventListener('click', () => {
+  projectFilter = btn.dataset.projectFilter;
+  document.querySelectorAll('[data-project-filter]').forEach(filterBtn => filterBtn.classList.toggle('active', filterBtn === btn));
+  renderProjects();
+}));
 
 function renderCustomers() {
   document.getElementById('customer-grid').innerHTML = customers.length

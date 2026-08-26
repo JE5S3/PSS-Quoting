@@ -58,8 +58,9 @@
       <p class="nav-kicker">[ ADMIN ]</p>
       <button class="nav-item active" data-view="dashboard"><span>01</span>DASHBOARD</button>
       <button class="nav-item" data-view="quotes"><span>02</span>QUOTES</button>
-      <button class="nav-item" data-view="customers"><span>03</span>CUSTOMERS</button>
-      <button class="nav-item" data-view="settings"><span>04</span>SETTINGS</button>
+      <button class="nav-item" data-view="projects"><span>03</span>LIVE PROJECTS</button>
+      <button class="nav-item" data-view="customers"><span>04</span>CUSTOMERS</button>
+      <button class="nav-item" data-view="settings"><span>05</span>SETTINGS</button>
       <div class="sidebar-foot">
         <p>PRIVATE TOOL</p>
         <span>Quotes and customers are stored securely in Supabase and protected by your login.</span>
@@ -105,6 +106,22 @@
         <div class="table-wrap"><table>
           <thead><tr><th>QUOTE</th><th>CLIENT</th><th>PROJECT</th><th>ISSUED</th><th>STATUS</th><th>TOTAL</th><th></th></tr></thead>
           <tbody id="quotes-body"></tbody>
+        </table></div>
+      </div>
+
+      <div class="view" id="view-projects">
+        <div class="page-head compact">
+          <div><span class="section-label">[ PAID WORK ]</span><h1>LIVE<br><span>PROJECTS.</span></h1></div>
+          <p>AUTOMATICALLY CREATED FROM PAID QUOTES</p>
+        </div>
+        <div class="project-filters" role="group" aria-label="Filter live projects">
+          <button class="project-filter active" type="button" data-project-filter="all">ALL PROJECTS</button>
+          <button class="project-filter" type="button" data-project-filter="monthly">MONTHLY</button>
+          <button class="project-filter" type="button" data-project-filter="one_time">SINGLE SALE</button>
+        </div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>PROJECT</th><th>CLIENT</th><th>TYPE</th><th>PAYMENT</th><th>STATUS</th><th></th></tr></thead>
+          <tbody id="projects-body"></tbody>
         </table></div>
       </div>
 
