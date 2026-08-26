@@ -131,7 +131,14 @@ function renderStatus(q) {
     document.getElementById('accepted-copy').textContent = acceptedText;
 
     const stripeBtn = document.getElementById('stripe-payment-btn');
+    const invoiceBtn = document.getElementById('stripe-invoice-btn');
     const note = document.getElementById('payment-note');
+
+    invoiceBtn.classList.add('hidden');
+    if (q.status === 'PAID' && q.invoiceUrl) {
+      invoiceBtn.href = q.invoiceUrl;
+      invoiceBtn.classList.remove('hidden');
+    }
 
     if (q.status !== 'PAID' && q.stripeUrl) {
       const paymentUrl = new URL(q.stripeUrl);
