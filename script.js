@@ -32,6 +32,7 @@ const addDays = (date, days) => {
 
 let quotes = [];
 let customers = [];
+let payments = [];
 let currentUser = null;
 let projectFilter = 'all';
 let projectStageFilter = 'all';
@@ -118,6 +119,7 @@ db.auth.onAuthStateChange(async (_event, session) => {
   if (!currentUser) {
     quotes = [];
     customers = [];
+    payments = [];
     showAuth();
     renderAll();
     return;
@@ -148,7 +150,7 @@ async function loadLiveData() {
 
   setLoading(true);
   try {
-    const [quotesResult, customersResult] = await Promise.all([
+    const [quotesResult, customersResult, paymentsResult] = await Promise.all([
       db
         .from('quotes')
         .select('*, quote_items(*)')
@@ -156,13 +158,26 @@ async function loadLiveData() {
       db
         .from('customers')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: false }),
+      db
+        .from('quote_payments')
+        .select('*')
+        .order('paid_at', { ascending: false })
     ]);
 
     if (quotesResult.error) throw quotesResult.error;
     if (customersResult.error) throw customersResult.error;
+    if (paymentsResult.error) throw paymentsResult.error;
 
-    quotes = (quotesResult.data || []).map(fromDbQuote);
+    payments = paymentsResult.data || [];
+    quotes = (quotesResult.data || []).map(fromDbQuote).map(q => {
+      const quotePayments = payments.filter(payment => payment.quote_id === q.id);
+      return {
+        ...q,
+        payments: quotePayments,
+        totalPaid: quotePayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0)
+      };
+    });
     customers = customersResult.data || [];
     renderAll();
   } catch (error) {
@@ -996,8 +1011,8 @@ document.getElementById('quote-search').addEventListener('input', renderQuotes);
 document.getElementById('status-filter').addEventListener('change', renderQuotes);
 
 function projectPaymentLabel(q) {
-  if (q.paymentPlan === 'monthly') return `${money(q.total)} / MO`;
-  if (q.paidAmount > 0) return `${money(q.paidAmount)} RECEIVED`;
+  if (q.paymentPlan === 'monthly') return `${money(q.totalPaid)} PAID TO DATE`;
+  if (q.totalPaid > 0) return `${money(q.totalPaid)} RECEIVED`;
   if (q.deposit > 0) return `${money(q.deposit)} DEPOSIT`;
   return money(q.total);
 }
@@ -1008,11 +1023,15 @@ function projectDetailRow(q) {
     ? `<ul>${e.items.map(item => `<li><span>${escapeHtml(item.description || 'Line item')}</span><strong>${item.qty} × ${money(item.rate)}</strong></li>`).join('')}</ul>`
     : '<p>No line-item job description was supplied.</p>';
 
+  const paymentHistory = e.payments.length
+    ? `<ul>${e.payments.map(payment => `<li><span>${new Date(payment.paid_at).toLocaleDateString('en-AU')} · ${escapeHtml(payment.event_type === 'invoice.paid' ? 'Stripe invoice' : 'Stripe payment')}</span><strong>${money(payment.amount)}</strong></li>`).join('')}</ul>`
+    : '<p>No individual payment records yet.</p>';
+
   return `<tr class="project-detail" data-project-detail="${e.id}" hidden><td colspan="6">
     <div class="project-detail-grid">
       <section><span>JOB DESCRIPTION</span>${items}${e.notes ? `<p class="project-notes">${escapeHtml(e.notes)}</p>` : ''}</section>
       <section><span>CONTACT DETAILS</span><p><strong>${escapeHtml(e.contactName || e.clientName || '—')}</strong><br>${escapeHtml(e.clientEmail || 'No email')}<br>${escapeHtml(e.clientPhone || 'No phone')}</p></section>
-      <section><span>PAYMENT DETAILS</span><p>Quote total: <strong>${money(e.total)}${e.paymentPlan === 'monthly' ? ' / month' : ''}</strong><br>${e.paymentPlan === 'monthly' ? `Latest payment recorded: <strong>${money(e.paidAmount)}</strong><br><small>Cumulative monthly revenue is not yet tracked.</small>` : `Deposit quoted: <strong>${money(e.deposit)}</strong><br>Payment received: <strong>${money(e.paidAmount || e.deposit || e.total)}</strong>`}${e.paidAt ? `<br>Paid: ${new Date(e.paidAt).toLocaleDateString('en-AU')}` : ''}</p></section>
+      <section><span>PAYMENT DETAILS</span><p>Quote total: <strong>${money(e.total)}${e.paymentPlan === 'monthly' ? ' / month' : ''}</strong><br>${e.paymentPlan === 'monthly' ? `Monthly amount: <strong>${money(e.total)}</strong><br>Total paid so far: <strong>${money(e.totalPaid)}</strong><br>Payments received: <strong>${e.payments.length}</strong>` : `Deposit quoted: <strong>${money(e.deposit)}</strong><br>Total payment received: <strong>${money(e.totalPaid || e.paidAmount || e.deposit || e.total)}</strong>`}${e.payments[0]?.paid_at || e.paidAt ? `<br>Latest payment: ${new Date(e.payments[0]?.paid_at || e.paidAt).toLocaleDateString('en-AU')}` : ''}</p><span>PAYMENT HISTORY</span>${paymentHistory}</section>
       <section class="project-edit-section"><span>PROJECT LINKS & NOTES</span><label>CODE LINK<input type="url" data-project-code value="${escapeAttr(e.codeLink)}" placeholder="https://github.com/..."></label><label>WEBSITE LINK<input type="url" data-project-website value="${escapeAttr(e.websiteLink)}" placeholder="https://..."></label><label>INTERNAL NOTES<textarea data-project-notes rows="4" placeholder="Project notes…">${escapeHtml(e.projectNotes)}</textarea></label><button class="project-save" type="button" data-save-project="${e.id}">SAVE PROJECT DETAILS</button></section>
     </div>
   </td></tr>`;
