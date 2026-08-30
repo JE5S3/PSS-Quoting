@@ -68,7 +68,7 @@ function loadSettings() {
   };
   try {
     const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-    if (!saved.email || ['hello@phaseshiftstudio.com', 'hello@phaseshiftstudio.com.au'].includes(String(saved.email).toLowerCase())) {
+    if (!saved.email || ['hello@phaseshiftstudio.com', 'hello@phaseshiftstudio.com.au', 'jesse@phaseshiftstudio.com'].includes(String(saved.email).toLowerCase())) {
       saved.email = 'jesse@phaseshiftstudio.com.au';
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved));
     }
@@ -794,14 +794,43 @@ cancelBtn.onclick = async () => {
   if (!confirm('Cancel this quote? This will keep the quote for your records but prevent the client from accepting or paying it.')) return;
 
   try {
-    const { data, error } = await db
+    const { data: current, error: readError } = await db
+      .from('quotes')
+      .select('status, accepted_at, paid_at, paid_amount')
+      .eq('id', id)
+      .single();
+
+    if (readError) throw readError;
+
+    const { count: paymentCount, error: paymentError } = await db
+      .from('quote_payments')
+      .select('id', { count: 'exact', head: true })
+      .eq('quote_id', id);
+
+    if (paymentError) throw paymentError;
+    if (
+      !['DRAFT', 'SENT'].includes(current.status) ||
+      current.accepted_at ||
+      current.paid_at ||
+      Number(current.paid_amount || 0) > 0 ||
+      Number(paymentCount || 0) > 0
+    ) {
+      throw new Error('This quote is no longer eligible for cancellation. Refresh and check its latest status.');
+    }
+
+    let update = db
       .from('quotes')
       .update({ status: 'CANCELLED', updated_at: new Date().toISOString() })
       .eq('id', id)
-      .in('status', ['DRAFT', 'SENT'])
+      .eq('status', current.status)
       .is('accepted_at', null)
-      .is('paid_at', null)
-      .or('paid_amount.is.null,paid_amount.eq.0')
+      .is('paid_at', null);
+
+    update = current.paid_amount == null
+      ? update.is('paid_amount', null)
+      : update.eq('paid_amount', 0);
+
+    const { data, error } = await update
       .select('id')
       .maybeSingle();
 
