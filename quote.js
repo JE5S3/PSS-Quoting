@@ -115,6 +115,12 @@ function renderStatus(q) {
   document.getElementById('accepted-state').classList.add('hidden');
   document.getElementById('declined-state').classList.add('hidden');
   document.getElementById('expired-state').classList.add('hidden');
+  document.getElementById('cancelled-state').classList.add('hidden');
+
+  if (q.status === 'CANCELLED') {
+    document.getElementById('cancelled-state').classList.remove('hidden');
+    return;
+  }
 
   if (q.expired && !['ACCEPTED','PAID'].includes(q.status)) {
     document.getElementById('expired-state').classList.remove('hidden');

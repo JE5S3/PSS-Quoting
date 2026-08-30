@@ -115,7 +115,7 @@
           <span class="eyebrow">[ ACCEPTED ]</span>
           <h3>QUOTE<br>ACCEPTED ✓</h3>
           <p id="accepted-copy"></p>
-          <a id="stripe-payment-btn" class="btn primary payment-btn hidden" href="#" rel="noopener">PAY DEPOSIT <span>↗</span></a>
+          <a id="stripe-payment-btn" class="btn primary payment-btn hidden" href="#" target="_blank" rel="noopener">PAY DEPOSIT <span>↗</span></a>
           <a id="stripe-invoice-btn" class="btn ghost payment-btn hidden" href="#" target="_blank" rel="noopener">VIEW INVOICE <span>↗</span></a>
           <p id="payment-note" class="payment-note hidden">Your payment link will be supplied separately.</p>
         </div>
@@ -124,6 +124,12 @@
           <span class="eyebrow">[ RESPONSE RECEIVED ]</span>
           <h3>THANK<br>YOU.</h3>
           <p>Your response has been recorded. Phase Shift Studio can revise the quote if required.</p>
+        </div>
+
+        <div id="cancelled-state" class="hidden">
+          <span class="eyebrow">[ CANCELLED ]</span>
+          <h3>QUOTE<br>CANCELLED.</h3>
+          <p>This quote has been cancelled. Please contact Phase Shift Studio for an updated quote.</p>
         </div>
 
         <div id="expired-state" class="hidden">
@@ -136,6 +142,6 @@
   </main>
 
   <footer class="client-footer">PHASE SHIFT STUDIO // QUEENSLAND, AUSTRALIA</footer>
-  <script src="quote.js"></script>
+  <script src="quote.js?v=3.1"></script>
 </body>
 </html>

@@ -49,3 +49,9 @@ button{cursor:pointer}
   .client-shell{margin-top:18px}.quote-sheet{padding:24px 18px}.quote-head,.quote-intro,.notes-grid{grid-template-columns:1fr;display:grid}.business-meta{text-align:left}.quote-intro h2{font-size:42px}
   .response-panel{padding:28px 20px}.response-panel h3{font-size:40px}.response-actions{flex-direction:column}.btn{width:100%}
 }
+
+
+/* V3.1 — readable client quote labels */
+.client-brand small,.quote-brand small,.eyebrow,.prepared small,.quote-table th,.response-panel label{font-size:11px}
+.business-meta{font-size:11px}
+.btn{font-size:11px}

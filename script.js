@@ -46,6 +46,7 @@ const dialog = document.getElementById('quote-dialog');
 const form = document.getElementById('quote-form');
 const lineItems = document.getElementById('line-items');
 const deleteBtn = document.getElementById('delete-quote-btn');
+const cancelBtn = document.getElementById('cancel-quote-btn');
 const duplicateBtn = document.getElementById('duplicate-quote-btn');
 const customerPickerDialog = document.getElementById('customer-picker-dialog');
 const customerPickerList = document.getElementById('customer-picker-list');
@@ -57,7 +58,7 @@ let settings = loadSettings();
 function loadSettings() {
   const defaults = {
     businessName: 'Phase Shift Studio',
-    email: 'hello@phaseshiftstudio.com',
+    email: 'jesse@phaseshiftstudio.com.au',
     abn: '',
     phone: '',
     address: 'Queensland, Australia',
@@ -66,7 +67,12 @@ function loadSettings() {
     terms: "Quote valid for 30 days. Work commences once the agreed deposit has been received. Final balance is due on completion unless otherwise agreed in writing. By accepting this quote, the client grants Phase Shift Studio permission to display the completed public-facing website, screenshots, business name and other publicly available project visuals in Phase Shift Studio's portfolio, website, social media and promotional materials, unless otherwise agreed in writing. Confidential or non-public client information will not be displayed."
   };
   try {
-    return { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    if (!saved.email || ['hello@phaseshiftstudio.com', 'hello@phaseshiftstudio.com.au'].includes(String(saved.email).toLowerCase())) {
+      saved.email = 'jesse@phaseshiftstudio.com.au';
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved));
+    }
+    return { ...defaults, ...saved };
   } catch {
     return defaults;
   }
@@ -580,20 +586,35 @@ form.elements.clientEmail.addEventListener('input', () => {
   form.elements.emailTo.value = form.elements.clientEmail.value;
 });
 
+function canCancelQuote(q) {
+  return Boolean(q) &&
+    ['DRAFT', 'SENT'].includes(q.status) &&
+    !q.acceptedAt &&
+    !q.paidAt &&
+    Number(q.paidAmount || 0) <= 0 &&
+    Number(q.totalPaid || 0) <= 0 &&
+    !(q.payments || []).length;
+}
+
 function openQuote(id=null) {
+  const base = id ? quotes.find(item => item.id === id) : null;
+  if (id && !base) {
+    alert('That quote could not be found. Refreshing the quote list may help.');
+    return;
+  }
+  const q = base ? enrichQuote(base) : null;
+
   form.reset();
   lineItems.innerHTML = '';
   form.elements.id.value = '';
 
-  document.getElementById('quote-form-title').textContent = id ? 'EDIT QUOTE' : 'NEW QUOTE';
-  deleteBtn.hidden = !id || ['ACCEPTED', 'PAID'].includes(q?.status);
-  duplicateBtn.hidden = !id;
+  document.getElementById('quote-form-title').textContent = q ? 'EDIT QUOTE' : 'NEW QUOTE';
+  deleteBtn.hidden = !q || ['ACCEPTED', 'PAID', 'CANCELLED'].includes(q.status);
+  cancelBtn.hidden = !canCancelQuote(q);
+  duplicateBtn.hidden = !q;
+  document.getElementById('send-quote-email-btn').disabled = q?.status === 'CANCELLED';
 
-  if (id) {
-    const base = quotes.find(x => x.id === id);
-    if (!base) return;
-
-    const q = enrichQuote(base);
+  if (q) {
     form.elements.id.value = q.id;
     form.elements.clientName.value = q.clientName || '';
     form.elements.contactName.value = q.contactName || '';
@@ -624,17 +645,12 @@ function openQuote(id=null) {
     form.elements.emailMessage.value = defaultEmailMessage({ quoteNumber: newNumber });
     updateEmailSendState(null);
     setPaymentPlan('one_time');
-    addItem({
-      description: 'Custom website design + development',
-      qty: 1,
-      rate: 1250
-    });
+    addItem({ description: 'Custom website design + development', qty: 1, rate: 1250 });
   }
 
   recalculate();
   dialog.showModal();
 }
-
 function collectItems() {
   return [...lineItems.querySelectorAll('.line-item')]
     .map(row => ({
@@ -750,8 +766,8 @@ deleteBtn.onclick = async () => {
   if (!id) return;
 
   const quote = quotes.find(item => item.id === id);
-  if (quote && ['ACCEPTED', 'PAID'].includes(quote.status)) {
-    alert('Accepted and paid quotes are permanent business records and cannot be deleted.');
+  if (quote && ['ACCEPTED', 'PAID', 'CANCELLED'].includes(quote.status)) {
+    alert('Accepted, paid and cancelled quotes are permanent business records and cannot be deleted.');
     return;
   }
 
@@ -765,6 +781,41 @@ deleteBtn.onclick = async () => {
   }
 };
 
+
+cancelBtn.onclick = async () => {
+  const id = form.elements.id.value;
+  const quote = quotes.find(item => item.id === id);
+
+  if (!canCancelQuote(quote)) {
+    alert('Only unpaid DRAFT or SENT quotes can be cancelled. Accepted or paid quotes cannot be cancelled.');
+    return;
+  }
+
+  if (!confirm('Cancel this quote? This will keep the quote for your records but prevent the client from accepting or paying it.')) return;
+
+  try {
+    const { data, error } = await db
+      .from('quotes')
+      .update({ status: 'CANCELLED', updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .in('status', ['DRAFT', 'SENT'])
+      .is('accepted_at', null)
+      .is('paid_at', null)
+      .or('paid_amount.is.null,paid_amount.eq.0')
+      .select('id')
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) throw new Error('This quote is no longer eligible for cancellation. Refresh and check its latest status.');
+
+    await loadLiveData();
+    dialog.close();
+    showView('quotes');
+  } catch (error) {
+    console.error('Cancel quote error:', error);
+    alert(`Could not cancel quote.\n\n${error.message}`);
+  }
+};
 
 duplicateBtn.onclick = async () => {
   const source = formToQuote();
@@ -803,6 +854,10 @@ async function sendQuoteEmail() {
   }
 
   const quote = formToQuote();
+  if (quote.status === 'CANCELLED') {
+    alert('Cancelled quotes cannot be sent. Duplicate the quote if the client needs an updated version.');
+    return;
+  }
   const to = (form.elements.emailTo.value || quote.clientEmail || '').trim();
   const subject = (form.elements.emailSubject.value || `Phase Shift Studio Quote ${quote.quoteNumber}`).trim();
   const message = (form.elements.emailMessage.value || '').trim();
@@ -852,6 +907,7 @@ async function sendQuoteEmail() {
         // V2.3: full quote data is sent to the Edge Function so the PDF can
         // be generated server-side. No PDF library is loaded into the admin page.
         quote: {
+          status: savedQuote.status || '',
           clientBusiness: savedQuote.clientName || '',
           clientContact: savedQuote.contactName || '',
           clientEmail: savedQuote.clientEmail || '',
@@ -933,7 +989,7 @@ function renderAll() {
 }
 
 function renderStats() {
-  const live = quotes.filter(q => q.status !== 'DECLINED');
+  const live = quotes.filter(q => !['DECLINED', 'CANCELLED'].includes(q.status));
   const sum = list => list.reduce((s,q) => s + Number(q.total || 0), 0);
 
   document.getElementById('stat-total').textContent = money(sum(live));
@@ -968,12 +1024,11 @@ function quoteRow(q, includeDate=true) {
   </tr>`;
 }
 
-function hookEditButtons() {
-  document.querySelectorAll('[data-edit]').forEach(
-    b => b.onclick = () => openQuote(b.dataset.edit)
-  );
-}
-
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-edit]');
+  if (!button) return;
+  openQuote(button.dataset.edit);
+});
 function renderRecent() {
   const body = document.getElementById('recent-body');
   const list = [...quotes]
@@ -984,7 +1039,6 @@ function renderRecent() {
     ? list.map(q => quoteRow(q, false)).join('')
     : '<tr class="empty-row"><td colspan="6">NO QUOTES YET — CREATE YOUR FIRST QUOTE.</td></tr>';
 
-  hookEditButtons();
 }
 
 function renderQuotes() {
@@ -1004,7 +1058,6 @@ function renderQuotes() {
     ? list.map(q => quoteRow(q, true)).join('')
     : '<tr class="empty-row"><td colspan="7">NO MATCHING QUOTES.</td></tr>';
 
-  hookEditButtons();
 }
 
 document.getElementById('quote-search').addEventListener('input', renderQuotes);

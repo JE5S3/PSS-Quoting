@@ -304,3 +304,15 @@ input[type="number"]::-webkit-outer-spin-button{
 @media(max-width:720px){
   .email-actions{align-items:stretch;flex-direction:column}
 }
+
+
+/* V3.1 — quote controls and readable technical labels */
+.payment-link-field{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end}
+.payment-link-field label{min-width:0}
+.open-stripe-btn{white-space:nowrap;min-height:43px}
+.status.CANCELLED{color:var(--muted);border-color:var(--muted);text-decoration:line-through}
+.brand small,.mode-pill,.nav-item span,.sidebar-foot p,.stats-grid span,.stats-grid small,th,.project-detail-grid section>span,.customer-card span,.settings-card label,.quote-modal label,.form-section>p,.line-items-head>p,.print-table th,.print-notes h4,.login-form label,.live-user,.form-section-heading>p,.field-label,.customer-picker-option span,.email-send-state,.email-actions p{font-size:11px}
+.section-label,.page-head>p,.toolbar input,.toolbar select{font-size:11px}
+.status{font-size:10px}
+.btn,.text-btn,.payment-plan-btn{font-size:11px}
+@media(max-width:720px){.payment-link-field{grid-template-columns:1fr}.open-stripe-btn{width:100%}}

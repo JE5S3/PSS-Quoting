@@ -100,7 +100,7 @@
           <input id="quote-search" type="search" placeholder="SEARCH QUOTE, CLIENT OR PROJECT…" />
           <select id="status-filter">
             <option value="">ALL STATUSES</option>
-            <option>DRAFT</option><option>SENT</option><option>ACCEPTED</option><option>PAID</option><option>DECLINED</option>
+            <option>DRAFT</option><option>SENT</option><option>ACCEPTED</option><option>PAID</option><option>DECLINED</option><option>CANCELLED</option>
           </select>
         </div>
         <div class="table-wrap"><table>
@@ -147,7 +147,7 @@
         </div>
         <form class="settings-card" id="settings-form">
           <label>BUSINESS NAME<input name="businessName" value="Phase Shift Studio"></label>
-          <label>EMAIL<input name="email" value="hello@phaseshiftstudio.com"></label>
+          <label>EMAIL<input name="email" value="jesse@phaseshiftstudio.com.au"></label>
           <label>ABN<input name="abn" placeholder="ABN"></label>
           <label>PHONE<input name="phone" placeholder="Optional"></label>
           <label class="full">BUSINESS ADDRESS<input name="address" placeholder="Queensland, Australia"></label>
@@ -190,7 +190,7 @@
           <label>PROJECT NAME<input name="projectName" required placeholder="Custom Website"></label>
           <label>STATUS
             <select name="status">
-              <option>DRAFT</option><option>SENT</option><option>ACCEPTED</option><option>PAID</option><option>DECLINED</option>
+              <option>DRAFT</option><option>SENT</option><option>ACCEPTED</option><option>PAID</option><option>DECLINED</option><option disabled>CANCELLED</option>
             </select>
           </label>
           <label>ISSUE DATE<input name="issueDate" type="date" required></label>
@@ -219,7 +219,7 @@
             <label>DEPOSIT %
               <input name="depositRate" type="number" min="0" max="100" step="1" value="50">
             </label>
-            <label>STRIPE PAYMENT LINK<input name="stripeUrl" type="url" placeholder="https://buy.stripe.com/..."></label>
+            <div class="payment-link-field"><label>STRIPE PAYMENT LINK<input name="stripeUrl" type="url" placeholder="https://buy.stripe.com/..."></label><a class="btn btn-ghost open-stripe-btn" href="https://dashboard.stripe.com/acct_1U4xKiKrB3h97Y2b/payment-links/create" target="_blank" rel="noopener noreferrer">OPEN STRIPE ↗</a></div>
           </div>
           <div class="totals-box">
             <div><span>SUBTOTAL</span><strong id="calc-subtotal">$0.00</strong></div>
@@ -263,6 +263,7 @@
 
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost danger" id="delete-quote-btn" hidden>DELETE</button>
+        <button type="button" class="btn btn-ghost danger" id="cancel-quote-btn" hidden>CANCEL QUOTE</button>
         <button type="button" class="btn btn-ghost" id="duplicate-quote-btn" hidden>DUPLICATE + SWITCH PLAN</button>
         <span></span>
         <button type="button" class="btn btn-ghost" id="preview-quote-btn">PREVIEW</button>
@@ -300,6 +301,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=2.9"></script>
+  <script src="script.js?v=3.1"></script>
 </body>
 </html>
