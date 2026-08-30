@@ -316,3 +316,5 @@ input[type="number"]::-webkit-outer-spin-button{
 .status{font-size:10px}
 .btn,.text-btn,.payment-plan-btn{font-size:11px}
 @media(max-width:720px){.payment-link-field{grid-template-columns:1fr}.open-stripe-btn{width:100%}}
+
+.btn[hidden]{display:none!important}
