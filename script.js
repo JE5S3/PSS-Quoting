@@ -48,6 +48,8 @@ const lineItems = document.getElementById('line-items');
 const deleteBtn = document.getElementById('delete-quote-btn');
 const cancelBtn = document.getElementById('cancel-quote-btn');
 const duplicateBtn = document.getElementById('duplicate-quote-btn');
+const createStripeLinkBtn = document.getElementById('create-stripe-link-btn');
+const stripeLinkHelp = document.getElementById('stripe-link-help');
 const customerPickerDialog = document.getElementById('customer-picker-dialog');
 const customerPickerList = document.getElementById('customer-picker-list');
 const customerPickerSearch = document.getElementById('customer-picker-search');
@@ -67,12 +69,14 @@ function loadSettings() {
     terms: "Quote valid for 30 days. Work commences once the agreed deposit has been received. Final balance is due on completion unless otherwise agreed in writing. By accepting this quote, the client grants Phase Shift Studio permission to display the completed public-facing website, screenshots, business name and other publicly available project visuals in Phase Shift Studio's portfolio, website, social media and promotional materials, unless otherwise agreed in writing. Confidential or non-public client information will not be displayed."
   };
   try {
-    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
-    if (!saved.email || ['hello@phaseshiftstudio.com', 'hello@phaseshiftstudio.com.au', 'jesse@phaseshiftstudio.com'].includes(String(saved.email).toLowerCase())) {
-      saved.email = 'jesse@phaseshiftstudio.com.au';
+    const saved = { ...defaults, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') };
+    if (['hello@phaseshiftstudio.com', 'hello@phaseshiftstudio.com.au', 'jesse@phaseshiftstudio.com'].includes(
+      String(saved.email || '').toLowerCase()
+    )) {
+      saved.email = defaults.email;
       localStorage.setItem(SETTINGS_KEY, JSON.stringify(saved));
     }
-    return { ...defaults, ...saved };
+    return saved;
   } catch {
     return defaults;
   }
@@ -586,35 +590,24 @@ form.elements.clientEmail.addEventListener('input', () => {
   form.elements.emailTo.value = form.elements.clientEmail.value;
 });
 
-function canCancelQuote(q) {
-  return Boolean(q) &&
-    ['DRAFT', 'SENT'].includes(q.status) &&
-    !q.acceptedAt &&
-    !q.paidAt &&
-    Number(q.paidAmount || 0) <= 0 &&
-    Number(q.totalPaid || 0) <= 0 &&
-    !(q.payments || []).length;
-}
-
 function openQuote(id=null) {
-  const base = id ? quotes.find(item => item.id === id) : null;
-  if (id && !base) {
-    alert('That quote could not be found. Refreshing the quote list may help.');
-    return;
-  }
-  const q = base ? enrichQuote(base) : null;
-
   form.reset();
   lineItems.innerHTML = '';
   form.elements.id.value = '';
 
-  document.getElementById('quote-form-title').textContent = q ? 'EDIT QUOTE' : 'NEW QUOTE';
-  deleteBtn.hidden = !q || ['ACCEPTED', 'PAID', 'CANCELLED'].includes(q.status);
+  document.getElementById('quote-form-title').textContent = id ? 'EDIT QUOTE' : 'NEW QUOTE';
+  const base = id ? quotes.find(x => x.id === id) : null;
+  if (id && !base) {
+    alert('That quote could not be found. Refresh the page and try again.');
+    return;
+  }
+  const q = base ? enrichQuote(base) : null;
+  deleteBtn.hidden = !id || ['ACCEPTED', 'PAID', 'CANCELLED'].includes(q?.status);
   cancelBtn.hidden = !canCancelQuote(q);
-  duplicateBtn.hidden = !q;
-  document.getElementById('send-quote-email-btn').disabled = q?.status === 'CANCELLED';
+  duplicateBtn.hidden = !id;
+  updateStripeLinkState(q);
 
-  if (q) {
+  if (id) {
     form.elements.id.value = q.id;
     form.elements.clientName.value = q.clientName || '';
     form.elements.contactName.value = q.contactName || '';
@@ -645,12 +638,34 @@ function openQuote(id=null) {
     form.elements.emailMessage.value = defaultEmailMessage({ quoteNumber: newNumber });
     updateEmailSendState(null);
     setPaymentPlan('one_time');
-    addItem({ description: 'Custom website design + development', qty: 1, rate: 1250 });
+    addItem({
+      description: 'Custom website design + development',
+      qty: 1,
+      rate: 1250
+    });
   }
 
   recalculate();
   dialog.showModal();
 }
+
+function updateStripeLinkState(q = null) {
+  if (!createStripeLinkBtn || !stripeLinkHelp) return;
+  const blocked = q && ['CANCELLED', 'DECLINED', 'PAID'].includes(q.status);
+  createStripeLinkBtn.disabled = Boolean(blocked);
+  createStripeLinkBtn.textContent = q?.stripeUrl ? 'REFRESH LINK →' : 'CREATE LINK →';
+  stripeLinkHelp.textContent = blocked
+    ? 'Payment links cannot be created for cancelled, declined or fully paid quotes.'
+    : 'Creates a secure AUD link automatically. Deposits are collected first; after payment is recorded, refresh the link to collect the remaining balance.';
+}
+
+function canCancelQuote(q) {
+  if (!q || !['DRAFT', 'SENT'].includes(q.status)) return false;
+  if (q.acceptedAt || q.paidAt) return false;
+  if (Number(q.paidAmount || 0) > 0 || Number(q.totalPaid || 0) > 0) return false;
+  return !(q.payments || []).length;
+}
+
 function collectItems() {
   return [...lineItems.querySelectorAll('.line-item')]
     .map(row => ({
@@ -741,6 +756,59 @@ function formToQuote() {
   };
 }
 
+async function requestStripePaymentLink(quoteId, action = 'create') {
+  const { data, error } = await db.functions.invoke('create-stripe-link', {
+    body: { quoteId, action }
+  });
+
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || 'Stripe could not create the payment link.');
+  return data;
+}
+
+async function createStripePaymentLink() {
+  if (!currentUser) {
+    alert('You must be signed in to create a Stripe payment link.');
+    return;
+  }
+
+  const quote = formToQuote();
+  if (['CANCELLED', 'DECLINED', 'PAID'].includes(quote.status)) {
+    alert('Payment links cannot be created for cancelled, declined or fully paid quotes.');
+    return;
+  }
+  if (!quote.clientName || !quote.projectName || !quote.items.length) {
+    alert('Add the client, project and at least one line item before creating the payment link.');
+    return;
+  }
+  if (quote.total <= 0) {
+    alert('The quote total must be greater than A$0.00.');
+    return;
+  }
+
+  const oldText = createStripeLinkBtn.textContent;
+  createStripeLinkBtn.disabled = true;
+  createStripeLinkBtn.textContent = 'CREATING…';
+
+  try {
+    const savedId = await saveQuoteToDb(quote);
+    const result = await requestStripePaymentLink(savedId);
+    form.elements.id.value = savedId;
+    form.elements.stripeUrl.value = result.url;
+    await loadLiveData();
+    updateStripeLinkState(quotes.find(item => item.id === savedId) || { stripeUrl: result.url });
+    alert(`${result.label} link created for ${money(result.amount)} AUD.`);
+  } catch (error) {
+    console.error('Create Stripe link error:', error);
+    alert(`Could not create the Stripe payment link.\n\n${error.message}`);
+  } finally {
+    createStripeLinkBtn.disabled = false;
+    if (createStripeLinkBtn.textContent === 'CREATING…') createStripeLinkBtn.textContent = oldText;
+  }
+}
+
+createStripeLinkBtn.addEventListener('click', createStripePaymentLink);
+
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const saveButton = form.querySelector('button[type="submit"]');
@@ -781,13 +849,12 @@ deleteBtn.onclick = async () => {
   }
 };
 
-
 cancelBtn.onclick = async () => {
   const id = form.elements.id.value;
   const quote = quotes.find(item => item.id === id);
 
   if (!canCancelQuote(quote)) {
-    alert('Only unpaid DRAFT or SENT quotes can be cancelled. Accepted or paid quotes cannot be cancelled.');
+    alert('This quote cannot be cancelled because it has been accepted or has a payment recorded.');
     return;
   }
 
@@ -815,7 +882,7 @@ cancelBtn.onclick = async () => {
       Number(current.paid_amount || 0) > 0 ||
       Number(paymentCount || 0) > 0
     ) {
-      throw new Error('This quote is no longer eligible for cancellation. Refresh and check its latest status.');
+      throw new Error('The quote changed or a payment was recorded before cancellation.');
     }
 
     let update = db
@@ -835,16 +902,26 @@ cancelBtn.onclick = async () => {
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) throw new Error('This quote is no longer eligible for cancellation. Refresh and check its latest status.');
+    if (!data) throw new Error('The quote changed or a payment was recorded before cancellation.');
+
+    let stripeWarning = '';
+    try {
+      await requestStripePaymentLink(id, 'deactivate');
+    } catch (stripeError) {
+      console.error('Stripe link deactivation error:', stripeError);
+      stripeWarning = '\n\nThe quote was cancelled, but Stripe could not confirm that its direct payment link was disabled. Check the link in Stripe before relying on the cancellation.';
+    }
 
     await loadLiveData();
     dialog.close();
     showView('quotes');
+    if (stripeWarning) alert(stripeWarning.trim());
   } catch (error) {
     console.error('Cancel quote error:', error);
     alert(`Could not cancel quote.\n\n${error.message}`);
   }
 };
+
 
 duplicateBtn.onclick = async () => {
   const source = formToQuote();
@@ -884,7 +961,7 @@ async function sendQuoteEmail() {
 
   const quote = formToQuote();
   if (quote.status === 'CANCELLED') {
-    alert('Cancelled quotes cannot be sent. Duplicate the quote if the client needs an updated version.');
+    alert('Cancelled quotes cannot be sent.');
     return;
   }
   const to = (form.elements.emailTo.value || quote.clientEmail || '').trim();
@@ -915,8 +992,19 @@ async function sendQuoteEmail() {
       emailMessage: message
     });
 
+    let generatedStripeUrl = quote.stripeUrl;
+    if (!generatedStripeUrl && quote.total > 0) {
+      const link = await requestStripePaymentLink(savedId);
+      generatedStripeUrl = link.url;
+      form.elements.stripeUrl.value = generatedStripeUrl;
+      await loadLiveData();
+    }
+
     const savedBase = quotes.find(q => q.id === savedId);
-    const savedQuote = savedBase ? enrichQuote(savedBase) : quote;
+    const savedQuote = {
+      ...(savedBase ? enrichQuote(savedBase) : quote),
+      stripeUrl: generatedStripeUrl || savedBase?.stripeUrl || ''
+    };
 
     const { data, error } = await db.functions.invoke('send-quote', {
       body: {
@@ -936,7 +1024,7 @@ async function sendQuoteEmail() {
         // V2.3: full quote data is sent to the Edge Function so the PDF can
         // be generated server-side. No PDF library is loaded into the admin page.
         quote: {
-          status: savedQuote.status || '',
+          status: savedQuote.status || 'DRAFT',
           clientBusiness: savedQuote.clientName || '',
           clientContact: savedQuote.contactName || '',
           clientEmail: savedQuote.clientEmail || '',
@@ -1053,11 +1141,6 @@ function quoteRow(q, includeDate=true) {
   </tr>`;
 }
 
-document.addEventListener('click', event => {
-  const button = event.target.closest('[data-edit]');
-  if (!button) return;
-  openQuote(button.dataset.edit);
-});
 function renderRecent() {
   const body = document.getElementById('recent-body');
   const list = [...quotes]
@@ -1067,7 +1150,6 @@ function renderRecent() {
   body.innerHTML = list.length
     ? list.map(q => quoteRow(q, false)).join('')
     : '<tr class="empty-row"><td colspan="6">NO QUOTES YET — CREATE YOUR FIRST QUOTE.</td></tr>';
-
 }
 
 function renderQuotes() {
@@ -1086,8 +1168,13 @@ function renderQuotes() {
   document.getElementById('quotes-body').innerHTML = list.length
     ? list.map(q => quoteRow(q, true)).join('')
     : '<tr class="empty-row"><td colspan="7">NO MATCHING QUOTES.</td></tr>';
-
 }
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-edit]');
+  if (!button) return;
+  openQuote(button.dataset.edit);
+});
 
 document.getElementById('quote-search').addEventListener('input', renderQuotes);
 document.getElementById('status-filter').addEventListener('change', renderQuotes);
