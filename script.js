@@ -199,6 +199,18 @@ async function loadLiveData() {
 }
 
 function fromDbQuote(q) {
+  const rawItems = (q.quote_items || [])
+    .sort((a,b) => a.sort_order - b.sort_order)
+    .map(i => ({
+      id: i.id,
+      description: i.description,
+      qty: Number(i.quantity),
+      rate: Number(i.rate),
+      billingType: i.billing_type || (q.payment_plan === 'monthly' ? 'monthly' : 'upfront')
+    }));
+  const fallbackUpfront = q.payment_plan === 'monthly' ? 0 : Number(q.total || 0);
+  const fallbackMonthly = q.payment_plan === 'monthly' ? Number(q.total || 0) : 0;
+
   return {
     id: q.id,
     quoteNumber: q.quote_number,
@@ -213,19 +225,16 @@ function fromDbQuote(q) {
     status: q.status,
     issueDate: q.issue_date || '',
     expiryDate: q.expiry_date || '',
-    items: (q.quote_items || [])
-      .sort((a,b) => a.sort_order - b.sort_order)
-      .map(i => ({
-        id: i.id,
-        description: i.description,
-        qty: Number(i.quantity),
-        rate: Number(i.rate)
-      })),
+    items: rawItems,
     subtotal: Number(q.subtotal),
     discount: Number(q.discount),
     gstRate: Number(q.gst_rate),
     gst: Number(q.gst_amount),
     total: Number(q.total),
+    upfrontSubtotal: Number(q.upfront_subtotal ?? fallbackUpfront),
+    upfrontTotal: Number(q.upfront_total ?? fallbackUpfront),
+    monthlySubtotal: Number(q.monthly_subtotal ?? fallbackMonthly),
+    monthlyTotal: Number(q.monthly_total ?? fallbackMonthly),
     depositRate: Number(q.deposit_rate),
     deposit: Number(q.deposit_amount),
     stripeUrl: q.stripe_payment_url || '',
@@ -333,6 +342,10 @@ async function saveQuoteToDb(quote) {
     gst_rate: quote.gstRate,
     gst_amount: quote.gst,
     total: quote.total,
+    upfront_subtotal: quote.upfrontSubtotal,
+    upfront_total: quote.upfrontTotal,
+    monthly_subtotal: quote.monthlySubtotal,
+    monthly_total: quote.monthlyTotal,
     deposit_rate: quote.depositRate,
     deposit_amount: quote.deposit,
     stripe_payment_url: quote.stripeUrl || null,
@@ -385,6 +398,7 @@ async function saveQuoteToDb(quote) {
       quantity: item.qty,
       rate: item.rate,
       amount: item.qty * item.rate,
+      billing_type: item.billingType === 'monthly' ? 'monthly' : 'upfront',
       sort_order: index
     }));
 
@@ -449,6 +463,15 @@ document.getElementById('new-quote-btn-2').onclick = () => openQuote();
 document.getElementById('refresh-btn').onclick = loadLiveData;
 document.getElementById('close-quote-dialog').onclick = () => dialog.close();
 
+document.querySelectorAll('[data-collapsible-section]').forEach(section => {
+  section.addEventListener('mouseenter', () => {
+    section.open = true;
+  });
+  section.querySelector('summary')?.addEventListener('click', event => {
+    if (event.target.closest('button, a, input, select, textarea')) event.stopPropagation();
+  });
+});
+
 function escapeAttr(s='') {
   return String(s)
     .replace(/&/g,'&amp;')
@@ -457,19 +480,22 @@ function escapeAttr(s='') {
     .replace(/>/g,'&gt;');
 }
 
-function makeItemRow(item={description:'', qty:1, rate:0}) {
+function makeItemRow(item={description:'', qty:1, rate:0, billingType:'upfront'}) {
+  const billingType = item.billingType === 'monthly' ? 'monthly' : 'upfront';
   const row = document.createElement('div');
   row.className = 'line-item';
   row.innerHTML = `
     <label>DESCRIPTION<input class="item-desc" value="${escapeAttr(item.description)}" placeholder="Website design"></label>
+    <label>TYPE<select class="item-billing"><option value="upfront"${billingType === 'upfront' ? ' selected' : ''}>UPFRONT</option><option value="monthly"${billingType === 'monthly' ? ' selected' : ''}>MONTHLY</option></select></label>
     <label>QTY<input class="item-qty" type="number" min="0" step="0.01" value="${item.qty ?? 1}"></label>
     <label>RATE<input class="item-rate" type="number" min="0" step="0.01" value="${item.rate ?? 0}"></label>
     <div class="item-total">${money((item.qty||0)*(item.rate||0))}</div>
     <button type="button" class="remove-item" aria-label="Remove item">×</button>`;
 
-  row.querySelectorAll('input').forEach(i =>
+  row.querySelectorAll('input, select').forEach(i =>
     i.addEventListener('input', recalculate)
   );
+  row.querySelector('.item-billing').addEventListener('change', recalculate);
 
   row.querySelector('.remove-item').onclick = () => {
     row.remove();
@@ -496,21 +522,10 @@ function nextQuoteNumber() {
 
 
 function setPaymentPlan(plan) {
-  const normalized = plan === 'monthly' ? 'monthly' : 'one_time';
+  const normalized = ['monthly', 'hybrid'].includes(plan) ? plan : 'one_time';
   form.elements.paymentPlan.value = normalized;
-
-  document.querySelectorAll('[data-payment-plan]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.paymentPlan === normalized);
-  });
-
-  const depositRow = document.getElementById('deposit-total-row');
-  depositRow.hidden = normalized === 'monthly';
   recalculate();
 }
-
-document.querySelectorAll('[data-payment-plan]').forEach(btn => {
-  btn.addEventListener('click', () => setPaymentPlan(btn.dataset.paymentPlan));
-});
 
 document.getElementById('select-customer-btn').addEventListener('click', () => {
   renderCustomerPicker();
@@ -590,6 +605,21 @@ form.elements.clientEmail.addEventListener('input', () => {
   form.elements.emailTo.value = form.elements.clientEmail.value;
 });
 
+form.elements.projectName.addEventListener('input', () => {
+  const quoteNumber = form.elements.id.value
+    ? quotes.find(q => q.id === form.elements.id.value)?.quoteNumber
+    : null;
+  const generatedPrefix = quoteNumber
+    ? `Phase Shift Studio Quote ${quoteNumber}`
+    : 'Phase Shift Studio Quote ';
+  if (!form.elements.emailSubject.value || form.elements.emailSubject.value.startsWith(generatedPrefix)) {
+    form.elements.emailSubject.value = defaultEmailSubject({
+      quoteNumber: quoteNumber || form.elements.emailSubject.value.match(/PSS-\d+/)?.[0] || nextQuoteNumber(),
+      projectName: form.elements.projectName.value
+    });
+  }
+});
+
 function openQuote(id=null) {
   form.reset();
   lineItems.innerHTML = '';
@@ -623,7 +653,7 @@ function openQuote(id=null) {
     form.elements.notes.value = q.notes || '';
     form.elements.terms.value = q.terms || settings.terms;
     form.elements.emailTo.value = q.clientEmail || '';
-    form.elements.emailSubject.value = q.emailSubject || `Phase Shift Studio Quote ${q.quoteNumber}`;
+    form.elements.emailSubject.value = q.emailSubject || defaultEmailSubject(q);
     form.elements.emailMessage.value = q.emailMessage || defaultEmailMessage(q);
     updateEmailSendState(q.sentAt);
     setPaymentPlan(q.paymentPlan || 'one_time');
@@ -634,19 +664,26 @@ function openQuote(id=null) {
     form.elements.depositRate.value = settings.depositRate;
     form.elements.terms.value = settings.terms;
     const newNumber = nextQuoteNumber();
-    form.elements.emailSubject.value = `Phase Shift Studio Quote ${newNumber}`;
+    form.elements.emailSubject.value = defaultEmailSubject({ quoteNumber: newNumber });
     form.elements.emailMessage.value = defaultEmailMessage({ quoteNumber: newNumber });
     updateEmailSendState(null);
     setPaymentPlan('one_time');
     addItem({
       description: 'Custom website design + development',
       qty: 1,
-      rate: 1250
+      rate: 1250,
+      billingType: 'upfront'
     });
   }
 
   recalculate();
   dialog.showModal();
+}
+
+function defaultEmailSubject(q = {}) {
+  const quoteNumber = q.quoteNumber || nextQuoteNumber();
+  const project = (q.projectName || '').trim();
+  return `Phase Shift Studio Quote ${quoteNumber}${project ? ` — ${project}` : ''}`;
 }
 
 function updateStripeLinkState(q = null) {
@@ -670,20 +707,45 @@ function collectItems() {
   return [...lineItems.querySelectorAll('.line-item')]
     .map(row => ({
       description: row.querySelector('.item-desc').value.trim(),
+      billingType: row.querySelector('.item-billing')?.value === 'monthly' ? 'monthly' : 'upfront',
       qty: Number(row.querySelector('.item-qty').value || 0),
       rate: Number(row.querySelector('.item-rate').value || 0)
     }))
     .filter(i => i.description || i.rate);
 }
 
-function totalsFrom(items, discount, gstRate, depositRate, paymentPlan='one_time') {
-  const subtotal = items.reduce((s,i) => s + (i.qty * i.rate), 0);
-  const disc = Math.min(Number(discount || 0), subtotal);
-  const taxable = Math.max(0, subtotal - disc);
-  const gst = taxable * (Number(gstRate || 0) / 100);
-  const total = taxable + gst;
-  const deposit = paymentPlan === 'monthly' ? 0 : total * (Number(depositRate || 0) / 100);
-  return { subtotal, discount: disc, gst, total, deposit };
+function paymentPlanFromTotals(upfrontTotal, monthlyTotal) {
+  if (monthlyTotal > 0 && upfrontTotal <= 0) return 'monthly';
+  return 'one_time';
+}
+
+function totalsFrom(items, discount, gstRate, depositRate) {
+  const upfrontSubtotal = items
+    .filter(i => i.billingType !== 'monthly')
+    .reduce((s,i) => s + (i.qty * i.rate), 0);
+  const monthlySubtotal = items
+    .filter(i => i.billingType === 'monthly')
+    .reduce((s,i) => s + (i.qty * i.rate), 0);
+  const disc = Math.min(Number(discount || 0), upfrontSubtotal);
+  const upfrontTaxable = Math.max(0, upfrontSubtotal - disc);
+  const gst = upfrontTaxable * (Number(gstRate || 0) / 100);
+  const upfrontTotal = upfrontTaxable + gst;
+  const monthlyTotal = monthlySubtotal;
+  const deposit = upfrontTotal * (Number(depositRate || 0) / 100);
+  const paymentPlan = paymentPlanFromTotals(upfrontTotal, monthlyTotal);
+
+  return {
+    subtotal: upfrontSubtotal,
+    discount: disc,
+    gst,
+    total: upfrontTotal || monthlyTotal,
+    upfrontSubtotal,
+    upfrontTotal,
+    monthlySubtotal,
+    monthlyTotal,
+    deposit,
+    paymentPlan
+  };
 }
 
 function recalculate() {
@@ -691,21 +753,21 @@ function recalculate() {
     collectItems(),
     form.elements.discount.value,
     0,
-    form.elements.depositRate.value,
-    form.elements.paymentPlan.value
+    form.elements.depositRate.value
   );
 
-  const suffix = form.elements.paymentPlan.value === 'monthly' ? ' / MO' : '';
-  document.getElementById('calc-subtotal').textContent = money(t.subtotal) + suffix;
-  document.getElementById('calc-discount').textContent = `-${money(t.discount)}` + suffix;
-  document.getElementById('calc-total').textContent = money(t.total) + suffix;
+  form.elements.paymentPlan.value = t.paymentPlan;
+  document.getElementById('calc-subtotal').textContent = money(t.upfrontSubtotal);
+  document.getElementById('calc-discount').textContent = `-${money(t.discount)}`;
+  document.getElementById('calc-total').textContent = money(t.upfrontTotal);
   document.getElementById('calc-deposit').textContent = money(t.deposit);
+  document.getElementById('calc-monthly-total').textContent = `${money(t.monthlyTotal)} / MO`;
 
   [...lineItems.querySelectorAll('.line-item')].forEach(row => {
     row.querySelector('.item-total').textContent = money(
       Number(row.querySelector('.item-qty').value || 0) *
       Number(row.querySelector('.item-rate').value || 0)
-    );
+    ) + (row.querySelector('.item-billing')?.value === 'monthly' ? ' / MO' : '');
   });
 }
 
@@ -722,9 +784,9 @@ function formToQuote() {
     items,
     fd.get('discount'),
     0,
-    fd.get('depositRate'),
-    fd.get('paymentPlan')
+    fd.get('depositRate')
   );
+  const paymentPlan = totals.paymentPlan;
 
   return {
     id,
@@ -736,7 +798,7 @@ function formToQuote() {
     clientPhone: fd.get('clientPhone').trim(),
     projectName: fd.get('projectName').trim(),
     status: fd.get('status'),
-    paymentPlan: fd.get('paymentPlan') || 'one_time',
+    paymentPlan,
     issueDate: fd.get('issueDate'),
     expiryDate: fd.get('expiryDate'),
     items,
@@ -927,14 +989,11 @@ duplicateBtn.onclick = async () => {
   const source = formToQuote();
   if (!source.id) return;
 
-  const switchedPlan = source.paymentPlan === 'monthly' ? 'one_time' : 'monthly';
-
   const duplicate = {
     ...source,
     id: null,
     quoteNumber: nextQuoteNumber(),
     status: 'DRAFT',
-    paymentPlan: switchedPlan,
     issueDate: todayISO(),
     expiryDate: addDays(todayISO(), 30),
     stripeUrl: '',
@@ -965,7 +1024,7 @@ async function sendQuoteEmail() {
     return;
   }
   const to = (form.elements.emailTo.value || quote.clientEmail || '').trim();
-  const subject = (form.elements.emailSubject.value || `Phase Shift Studio Quote ${quote.quoteNumber}`).trim();
+  const subject = (form.elements.emailSubject.value || defaultEmailSubject(quote)).trim();
   const message = (form.elements.emailMessage.value || '').trim();
 
   if (!to) {
@@ -1012,7 +1071,7 @@ async function sendQuoteEmail() {
         clientName: savedQuote.contactName || savedQuote.clientName || '',
         quoteNumber: savedQuote.quoteNumber,
         projectName: savedQuote.projectName,
-        total: money(savedQuote.total),
+        total: pricingLabel(savedQuote),
         paymentPlan: savedQuote.paymentPlan || 'one_time',
         subject,
         message,
@@ -1032,6 +1091,7 @@ async function sendQuoteEmail() {
           expiryDate: savedQuote.expiryDate || '',
           items: (savedQuote.items || []).map(item => ({
             description: item.description || '',
+            billingType: item.billingType === 'monthly' ? 'monthly' : 'upfront',
             qty: Number(item.qty || 0),
             rate: Number(item.rate || 0),
             amount: Number(item.qty || 0) * Number(item.rate || 0)
@@ -1041,6 +1101,10 @@ async function sendQuoteEmail() {
           gstRate: Number(savedQuote.gstRate || 0),
           gst: Number(savedQuote.gst || 0),
           total: Number(savedQuote.total || 0),
+          upfrontSubtotal: Number(savedQuote.upfrontSubtotal || 0),
+          upfrontTotal: Number(savedQuote.upfrontTotal || 0),
+          monthlySubtotal: Number(savedQuote.monthlySubtotal || 0),
+          monthlyTotal: Number(savedQuote.monthlyTotal || 0),
           depositRate: Number(savedQuote.depositRate || 0),
           deposit: Number(savedQuote.deposit || 0),
           notes: savedQuote.notes || '',
@@ -1127,16 +1191,32 @@ function escapeHtml(s='') {
   }[m]));
 }
 
+function pricingLabel(q) {
+  const upfront = Number(q.upfrontTotal ?? (q.paymentPlan === 'monthly' ? 0 : q.total) ?? 0);
+  const monthly = Number(q.monthlyTotal ?? (q.paymentPlan === 'monthly' ? q.total : 0) ?? 0);
+  if (upfront > 0 && monthly > 0) return `${money(upfront)} + ${money(monthly)} / MO`;
+  if (monthly > 0) return `${money(monthly)} / MO`;
+  return money(upfront || q.total);
+}
+
+function planLabel(q) {
+  const upfront = Number(q.upfrontTotal ?? (q.paymentPlan === 'monthly' ? 0 : q.total) ?? 0);
+  const monthly = Number(q.monthlyTotal ?? (q.paymentPlan === 'monthly' ? q.total : 0) ?? 0);
+  if (upfront > 0 && monthly > 0) return 'UPFRONT + MONTHLY';
+  if (monthly > 0) return 'MONTHLY';
+  return 'UPFRONT';
+}
+
 function quoteRow(q, includeDate=true) {
   const e = enrichQuote(q);
 
   return `<tr>
     <td><strong>${e.quoteNumber}</strong></td>
     <td>${escapeHtml(e.clientName || '—')}</td>
-    <td>${escapeHtml(e.projectName)} <span class="plan-tag">${e.paymentPlan === 'monthly' ? 'MONTHLY' : 'ONE-TIME'}</span></td>
+    <td>${escapeHtml(e.projectName)} <span class="plan-tag">${planLabel(e)}</span></td>
     ${includeDate ? `<td>${e.issueDate || '—'}</td>` : ''}
     <td><span class="status ${e.status}">${e.status}</span></td>
-    <td><strong>${money(e.total)}${e.paymentPlan === 'monthly' ? ' / MO' : ''}</strong></td>
+    <td><strong>${pricingLabel(e)}</strong></td>
     <td><button class="table-action" data-edit="${e.id}">OPEN →</button></td>
   </tr>`;
 }
@@ -1180,10 +1260,10 @@ document.getElementById('quote-search').addEventListener('input', renderQuotes);
 document.getElementById('status-filter').addEventListener('change', renderQuotes);
 
 function projectPaymentLabel(q) {
-  if (q.paymentPlan === 'monthly') return `${money(q.totalPaid)} PAID TO DATE`;
+  if (Number(q.monthlyTotal || 0) > 0) return `${money(q.totalPaid)} PAID TO DATE`;
   if (q.totalPaid > 0) return `${money(q.totalPaid)} RECEIVED`;
   if (q.deposit > 0) return `${money(q.deposit)} DEPOSIT`;
-  return money(q.total);
+  return pricingLabel(q);
 }
 
 function projectDetailRow(q) {
@@ -1200,7 +1280,7 @@ function projectDetailRow(q) {
     <div class="project-detail-grid">
       <section><span>JOB DESCRIPTION</span>${items}${e.notes ? `<p class="project-notes">${escapeHtml(e.notes)}</p>` : ''}</section>
       <section><span>CONTACT DETAILS</span><p><strong>${escapeHtml(e.contactName || e.clientName || '—')}</strong><br>${escapeHtml(e.clientEmail || 'No email')}<br>${escapeHtml(e.clientPhone || 'No phone')}</p></section>
-      <section><span>PAYMENT DETAILS</span><p>Quote total: <strong>${money(e.total)}${e.paymentPlan === 'monthly' ? ' / month' : ''}</strong><br>${e.paymentPlan === 'monthly' ? `Monthly amount: <strong>${money(e.total)}</strong><br>Total paid so far: <strong>${money(e.totalPaid)}</strong><br>Payments received: <strong>${e.payments.length}</strong>` : `Deposit quoted: <strong>${money(e.deposit)}</strong><br>Total payment received: <strong>${money(e.totalPaid || e.paidAmount || e.deposit || e.total)}</strong>`}${e.payments[0]?.paid_at || e.paidAt ? `<br>Latest payment: ${new Date(e.payments[0]?.paid_at || e.paidAt).toLocaleDateString('en-AU')}` : ''}</p><span>PAYMENT HISTORY</span>${paymentHistory}</section>
+      <section><span>PAYMENT DETAILS</span><p>Upfront total: <strong>${money(e.upfrontTotal || 0)}</strong><br>Monthly total: <strong>${money(e.monthlyTotal || 0)} / month</strong><br>Deposit quoted: <strong>${money(e.deposit || 0)}</strong><br>Total paid so far: <strong>${money(e.totalPaid || e.paidAmount || 0)}</strong><br>Payments received: <strong>${e.payments.length}</strong>${e.payments[0]?.paid_at || e.paidAt ? `<br>Latest payment: ${new Date(e.payments[0]?.paid_at || e.paidAt).toLocaleDateString('en-AU')}` : ''}</p><span>PAYMENT HISTORY</span>${paymentHistory}</section>
       <section class="project-edit-section"><span>PROJECT LINKS & NOTES</span><label>CODE LINK<input type="url" data-project-code value="${escapeAttr(e.codeLink)}" placeholder="https://github.com/..."></label><label>WEBSITE LINK<input type="url" data-project-website value="${escapeAttr(e.websiteLink)}" placeholder="https://..."></label><label>INTERNAL NOTES<textarea data-project-notes rows="4" placeholder="Project notes…">${escapeHtml(e.projectNotes)}</textarea></label><button class="project-save" type="button" data-save-project="${e.id}">SAVE PROJECT DETAILS</button></section>
     </div>
   </td></tr>`;
@@ -1210,13 +1290,13 @@ function renderProjects() {
   const body = document.getElementById('projects-body');
   if (!body) return;
   const list = quotes.filter(q => q.status === 'PAID')
-    .filter(q => projectFilter === 'all' || q.paymentPlan === projectFilter)
+    .filter(q => projectFilter === 'all' || (projectFilter === 'monthly' ? Number(q.monthlyTotal || 0) > 0 : Number(q.upfrontTotal || q.total || 0) > 0))
     .filter(q => projectStageFilter === 'all' || q.projectStatus === projectStageFilter)
     .sort((a,b) => (b.paidAt || b.updatedAt || '').localeCompare(a.paidAt || a.updatedAt || ''));
 
   body.innerHTML = list.length ? list.map(q => {
     const e = enrichQuote(q);
-    return `<tr><td><strong>${escapeHtml(e.projectName || 'Untitled project')}</strong><br><small>${escapeHtml(e.quoteNumber)}</small></td><td>${escapeHtml(e.clientName || '—')}</td><td><span class="plan-tag">${e.paymentPlan === 'monthly' ? 'MONTHLY' : 'SINGLE SALE'}</span></td><td><strong>${projectPaymentLabel(e)}</strong></td><td><select class="project-stage stage-${e.projectStatus}" data-project-stage="${e.id}" aria-label="Project status for ${escapeAttr(e.projectName)}"><option value="in_progress"${e.projectStatus === 'in_progress' ? ' selected' : ''}>IN PROGRESS</option><option value="built"${e.projectStatus === 'built' ? ' selected' : ''}>BUILT</option><option value="ongoing"${e.projectStatus === 'ongoing' ? ' selected' : ''}>ON GOING</option><option value="posted"${e.projectStatus === 'posted' ? ' selected' : ''}>POSTED</option></select></td><td><button class="table-action" data-toggle-project="${e.id}" aria-expanded="false">OPEN →</button></td></tr>${projectDetailRow(e)}`;
+    return `<tr><td><strong>${escapeHtml(e.projectName || 'Untitled project')}</strong><br><small>${escapeHtml(e.quoteNumber)}</small></td><td>${escapeHtml(e.clientName || '—')}</td><td><span class="plan-tag">${planLabel(e)}</span></td><td><strong>${projectPaymentLabel(e)}</strong></td><td><select class="project-stage stage-${e.projectStatus}" data-project-stage="${e.id}" aria-label="Project status for ${escapeAttr(e.projectName)}"><option value="in_progress"${e.projectStatus === 'in_progress' ? ' selected' : ''}>IN PROGRESS</option><option value="built"${e.projectStatus === 'built' ? ' selected' : ''}>BUILT</option><option value="ongoing"${e.projectStatus === 'ongoing' ? ' selected' : ''}>ON GOING</option><option value="posted"${e.projectStatus === 'posted' ? ' selected' : ''}>POSTED</option></select></td><td><button class="table-action" data-toggle-project="${e.id}" aria-expanded="false">OPEN →</button></td></tr>${projectDetailRow(e)}`;
   }).join('') : '<tr class="empty-row"><td colspan="6">NO PAID PROJECTS IN THIS VIEW.</td></tr>';
 
   document.querySelectorAll('[data-toggle-project]').forEach(btn => btn.addEventListener('click', () => {
@@ -1347,8 +1427,10 @@ const previewDialog = document.getElementById('preview-dialog');
 
 function buildQuoteHtml(raw) {
   const q = raw.id ? enrichQuote(raw) : raw;
-  const monthly = q.paymentPlan === 'monthly';
-  const unit = monthly ? ' / month' : '';
+  const upfrontItems = (q.items || []).filter(i => i.billingType !== 'monthly');
+  const monthlyItems = (q.items || []).filter(i => i.billingType === 'monthly');
+  const hasUpfront = Number(q.upfrontTotal || 0) > 0 || upfrontItems.length > 0;
+  const hasMonthly = Number(q.monthlyTotal || 0) > 0 || monthlyItems.length > 0;
 
   const payment = q.stripeUrl
     ? `<div class="payment-box"><strong>PAYMENT</strong><br>A secure Stripe payment link has been supplied with this quote.</div>`
@@ -1371,7 +1453,7 @@ function buildQuoteHtml(raw) {
 
       <div class="quote-title">
         <div>
-          <span class="section-label">[ ${monthly ? 'MONTHLY QUOTE' : 'QUOTE'} ]</span>
+          <span class="section-label">[ ${hasUpfront && hasMonthly ? 'UPFRONT + MONTHLY QUOTE' : hasMonthly ? 'MONTHLY QUOTE' : 'QUOTE'} ]</span>
           <h2>${q.quoteNumber}</h2>
           <p>${escapeHtml(q.projectName)}</p>
         </div>
@@ -1382,29 +1464,30 @@ function buildQuoteHtml(raw) {
           ${q.clientEmail ? `<br>${escapeHtml(q.clientEmail)}` : ''}</p>
           <p><strong>ISSUED</strong> ${q.issueDate || '—'}<br>
           <strong>VALID UNTIL</strong> ${q.expiryDate || '—'}<br>
-          <strong>PAYMENT PLAN</strong> ${monthly ? 'MONTHLY' : 'SINGLE PAYMENT'}</p>
+          <strong>PRICING</strong> ${planLabel(q)}</p>
         </div>
       </div>
 
       <table class="print-table">
-        <thead><tr><th>DESCRIPTION</th><th>QTY</th><th>RATE</th><th>AMOUNT</th></tr></thead>
+        <thead><tr><th>DESCRIPTION</th><th>TYPE</th><th>QTY</th><th>RATE</th><th>AMOUNT</th></tr></thead>
         <tbody>
           ${q.items.map(i => `
             <tr>
               <td>${escapeHtml(i.description)}</td>
+              <td>${i.billingType === 'monthly' ? 'MONTHLY' : 'UPFRONT'}</td>
               <td>${i.qty}</td>
-              <td>${money(i.rate)}${unit}</td>
-              <td>${money(i.qty * i.rate)}${unit}</td>
+              <td>${money(i.rate)}${i.billingType === 'monthly' ? ' / month' : ''}</td>
+              <td>${money(i.qty * i.rate)}${i.billingType === 'monthly' ? ' / month' : ''}</td>
             </tr>`).join('')}
         </tbody>
       </table>
 
       <div class="print-totals">
-        <div><span>Subtotal${monthly ? ' / month' : ''}</span><strong>${money(q.subtotal)}</strong></div>
-        ${q.discount ? `<div><span>Discount${monthly ? ' / month' : ''}</span><strong>-${money(q.discount)}</strong></div>` : ''}
-        ${q.gstRate ? `<div><span>GST (${q.gstRate}%)${monthly ? ' / month' : ''}</span><strong>${money(q.gst)}</strong></div>` : ''}
-        <div class="total"><span>${monthly ? 'MONTHLY TOTAL' : 'TOTAL'}</span><strong>${money(q.total)}${monthly ? ' / month' : ''}</strong></div>
-        ${monthly ? '' : `<div><span>Deposit (${q.depositRate}%)</span><strong>${money(q.deposit)}</strong></div>`}
+        ${hasUpfront ? `<div><span>Upfront subtotal</span><strong>${money(q.upfrontSubtotal ?? q.subtotal)}</strong></div>` : ''}
+        ${q.discount ? `<div><span>Discount</span><strong>-${money(q.discount)}</strong></div>` : ''}
+        ${q.gstRate ? `<div><span>GST (${q.gstRate}%)</span><strong>${money(q.gst)}</strong></div>` : ''}
+        ${hasUpfront ? `<div class="total"><span>UPFRONT TOTAL</span><strong>${money(q.upfrontTotal ?? q.total)}</strong></div><div><span>Deposit (${q.depositRate}%)</span><strong>${money(q.deposit)}</strong></div>` : ''}
+        ${hasMonthly ? `<div class="total monthly-print-total"><span>MONTHLY TOTAL</span><strong>${money(q.monthlyTotal || 0)} / month</strong></div>` : ''}
       </div>
 
       ${payment}
