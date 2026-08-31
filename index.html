@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Phase Shift Studio private quoting dashboard." />
   <title>Phase Shift Studio — Quote Admin</title>
-  <link rel="stylesheet" href="styles.css?v=3.0" />
+  <link rel="stylesheet" href="styles.css?v=3.1" />
 </head>
 <body>
   <div class="auth-screen" id="auth-screen">
@@ -165,28 +165,33 @@
   <dialog id="quote-dialog">
     <form method="dialog" class="quote-modal" id="quote-form">
       <div class="modal-head">
-        <div><span class="section-label">[ QUOTE BUILDER ]</span><h2 id="quote-form-title">NEW QUOTE</h2></div>
-        <button class="icon-btn" id="close-quote-dialog" type="button" aria-label="Close">×</button>
+        <button class="icon-btn modal-exit" id="close-quote-dialog" type="button" aria-label="Exit">×</button>
+        <div class="modal-title"><span class="section-label">[ QUOTE BUILDER ]</span><h2 id="quote-form-title">NEW QUOTE</h2></div>
+        <div class="modal-head-actions">
+          <span class="email-send-state" id="email-send-state">NOT SENT</span>
+          <button type="button" class="btn btn-ghost" id="preview-quote-btn">PREVIEW</button>
+          <button type="submit" class="btn btn-primary">SAVE <span>↗</span></button>
+        </div>
       </div>
 
       <input type="hidden" name="id" />
 
-      <div class="form-section">
-        <div class="form-section-heading">
+      <details class="form-section" open data-collapsible-section>
+        <summary class="form-section-heading">
           <p>01 // CLIENT</p>
           <button type="button" class="text-btn" id="select-customer-btn">SELECT EXISTING CUSTOMER →</button>
-        </div>
-        <div class="form-grid">
+        </summary>
+        <div class="section-content form-grid">
           <label>CLIENT / BUSINESS<input name="clientName" required placeholder="Client or business name"></label>
           <label>CONTACT PERSON<input name="contactName" placeholder="Optional"></label>
           <label>EMAIL<input name="clientEmail" type="email" placeholder="client@business.com"></label>
           <label>PHONE<input name="clientPhone" placeholder="Optional"></label>
         </div>
-      </div>
+      </details>
 
-      <div class="form-section">
-        <p>02 // PROJECT</p>
-        <div class="form-grid">
+      <details class="form-section" open data-collapsible-section>
+        <summary class="form-section-heading"><p>02 // PROJECT</p></summary>
+        <div class="section-content form-grid">
           <label>PROJECT NAME<input name="projectName" required placeholder="Custom Website"></label>
           <label>STATUS
             <select name="status">
@@ -196,24 +201,23 @@
           <label>ISSUE DATE<input name="issueDate" type="date" required></label>
           <label>EXPIRY DATE<input name="expiryDate" type="date"></label>
           <div class="full">
-            <span class="field-label">PAYMENT PLAN</span>
-            <div class="payment-plan-toggle" role="group" aria-label="Quote payment plan">
-              <button type="button" class="payment-plan-btn active" data-payment-plan="one_time">SINGLE PAYMENT</button>
-              <button type="button" class="payment-plan-btn" data-payment-plan="monthly">MONTHLY</button>
+            <span class="field-label">PRICING TYPES</span>
+            <div class="pricing-type-note">
+              Add upfront and monthly line items in the quote below. Use one type, or both together.
             </div>
             <input type="hidden" name="paymentPlan" value="one_time">
           </div>
         </div>
-      </div>
+      </details>
 
-      <div class="form-section">
-        <div class="line-items-head"><p>03 // LINE ITEMS</p><button type="button" class="text-btn" id="add-item-btn">+ ADD ITEM</button></div>
-        <div class="line-items" id="line-items"></div>
-      </div>
+      <details class="form-section" open data-collapsible-section>
+        <summary class="line-items-head"><p>03 // LINE ITEMS</p><button type="button" class="text-btn" id="add-item-btn">+ ADD ITEM</button></summary>
+        <div class="section-content line-items" id="line-items"></div>
+      </details>
 
-      <div class="form-section">
-        <p>04 // TOTALS</p>
-        <div class="totals-layout">
+      <details class="form-section" open data-collapsible-section>
+        <summary class="form-section-heading"><p>04 // TOTALS</p></summary>
+        <div class="section-content totals-layout">
           <div class="form-grid">
             <label>DISCOUNT $<input name="discount" type="number" min="0" step="0.01" value="0"></label>
             <label>DEPOSIT %
@@ -229,29 +233,29 @@
             </label>
           </div>
           <div class="totals-box">
-            <div><span>SUBTOTAL</span><strong id="calc-subtotal">$0.00</strong></div>
+            <div><span>UPFRONT SUBTOTAL</span><strong id="calc-subtotal">$0.00</strong></div>
             <div><span>DISCOUNT</span><strong id="calc-discount">-$0.00</strong></div>
-            <div class="grand"><span>TOTAL</span><strong id="calc-total">$0.00</strong></div>
+            <div class="grand"><span>UPFRONT TOTAL</span><strong id="calc-total">$0.00</strong></div>
             <div id="deposit-total-row"><span>DEPOSIT</span><strong id="calc-deposit">$0.00</strong></div>
+            <div class="monthly-total-row"><span>MONTHLY TOTAL</span><strong id="calc-monthly-total">$0.00 / MO</strong></div>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div class="form-section">
-        <p>05 // NOTES</p>
-        <div class="form-grid">
+      <details class="form-section" data-collapsible-section>
+        <summary class="form-section-heading"><p>05 // NOTES</p></summary>
+        <div class="section-content form-grid">
           <label class="full">SCOPE / NOTES<textarea name="notes" rows="5" placeholder="Project inclusions, exclusions, milestones or notes…"></textarea></label>
           <label class="full">TERMS<textarea name="terms" rows="5"></textarea></label>
         </div>
-      </div>
+      </details>
 
 
-      <div class="form-section email-section">
-        <div class="form-section-heading">
+      <details class="form-section email-section" data-collapsible-section>
+        <summary class="form-section-heading">
           <p>06 // EMAIL QUOTE</p>
-          <span class="email-send-state" id="email-send-state">NOT SENT</span>
-        </div>
-        <div class="form-grid">
+        </summary>
+        <div class="section-content form-grid">
           <label class="full">TO
             <input name="emailTo" type="email" placeholder="client@business.com" />
           </label>
@@ -266,15 +270,12 @@
           <p>Replies will go to your configured Phase Shift Studio reply-to inbox.</p>
           <button type="button" class="btn btn-primary" id="send-quote-email-btn">SEND QUOTE BY EMAIL <span>↗</span></button>
         </div>
-      </div>
+      </details>
 
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost danger" id="delete-quote-btn" hidden>DELETE</button>
         <button type="button" class="btn btn-ghost danger" id="cancel-quote-btn" hidden>CANCEL QUOTE</button>
-        <button type="button" class="btn btn-ghost" id="duplicate-quote-btn" hidden>DUPLICATE + SWITCH PLAN</button>
-        <span></span>
-        <button type="button" class="btn btn-ghost" id="preview-quote-btn">PREVIEW</button>
-        <button type="submit" class="btn btn-primary">SAVE QUOTE <span>↗</span></button>
+        <button type="button" class="btn btn-ghost" id="duplicate-quote-btn" hidden>DUPLICATE</button>
       </div>
     </form>
   </dialog>
@@ -308,6 +309,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=3.3"></script>
+  <script src="script.js?v=3.4"></script>
 </body>
 </html>
