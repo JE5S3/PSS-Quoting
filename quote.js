@@ -57,8 +57,13 @@ function renderQuote(q) {
   errorState.classList.add('hidden');
   quoteView.classList.remove('hidden');
 
-  document.getElementById('quote-type').textContent =
-    q.paymentPlan === 'monthly' ? '[ MONTHLY QUOTE ]' : '[ QUOTE ]';
+  const upfrontTotal = Number(q.upfrontTotal ?? (q.paymentPlan === 'monthly' ? 0 : q.total) ?? 0);
+  const monthlyTotal = Number(q.monthlyTotal ?? (q.paymentPlan === 'monthly' ? q.total : 0) ?? 0);
+  const hasUpfront = upfrontTotal > 0;
+  const hasMonthly = monthlyTotal > 0;
+  const pricingType = hasUpfront && hasMonthly ? 'UPFRONT + MONTHLY' : hasMonthly ? 'MONTHLY' : 'QUOTE';
+
+  document.getElementById('quote-type').textContent = `[ ${pricingType} QUOTE ]`;
 
   document.getElementById('quote-number').textContent = q.quoteNumber;
   document.getElementById('project-name').textContent = q.projectName || '';
@@ -68,7 +73,7 @@ function renderQuote(q) {
   document.getElementById('issue-date').textContent = `ISSUED ${q.issueDate || '—'}`;
   document.getElementById('expiry-date').textContent = `VALID UNTIL ${q.expiryDate || '—'}`;
   document.getElementById('payment-plan').textContent =
-    `PAYMENT PLAN ${q.paymentPlan === 'monthly' ? 'MONTHLY' : 'SINGLE PAYMENT'}`;
+    `PAYMENT ${hasUpfront && hasMonthly ? 'UPFRONT + MONTHLY' : hasMonthly ? 'MONTHLY' : 'UPFRONT'}`;
 
   const business = q.business || {};
   document.getElementById('business-meta').innerHTML = [
@@ -77,22 +82,22 @@ function renderQuote(q) {
     escapeHtml(business.address || '')
   ].filter(Boolean).join('<br>');
 
-  const unit = q.paymentPlan === 'monthly' ? ' / month' : '';
   document.getElementById('quote-items').innerHTML = (q.items || []).map(item => `
     <tr>
       <td>${escapeHtml(item.description || '')}</td>
       <td>${Number(item.qty || 0)}</td>
-      <td>${money(item.rate)}${unit}</td>
-      <td>${money(item.amount)}${unit}</td>
+      <td>${money(item.rate)}${item.billingType === 'monthly' ? ' / month' : ''}</td>
+      <td>${money(item.amount)}${item.billingType === 'monthly' ? ' / month' : ''}</td>
     </tr>
   `).join('');
 
   const rows = [
-    ['Subtotal', money(q.subtotal)],
+    hasUpfront ? ['Upfront subtotal', money(q.upfrontSubtotal ?? q.subtotal)] : null,
     q.discount ? ['Discount', `-${money(q.discount)}`] : null,
     q.gstRate ? [`GST (${q.gstRate}%)`, money(q.gst)] : null,
-    [q.paymentPlan === 'monthly' ? 'MONTHLY TOTAL' : 'TOTAL', money(q.total) + unit, true],
-    q.paymentPlan !== 'monthly' && q.depositRate
+    hasUpfront ? ['UPFRONT TOTAL', money(upfrontTotal), true] : null,
+    hasMonthly ? ['MONTHLY TOTAL', `${money(monthlyTotal)} / month`, true] : null,
+    hasUpfront && q.depositRate
       ? [`Deposit (${q.depositRate}%)`, money(q.deposit)]
       : null
   ].filter(Boolean);
@@ -151,7 +156,7 @@ function renderStatus(q) {
       paymentUrl.searchParams.set('client_reference_id', q.quoteNumber);
       stripeBtn.href = paymentUrl.toString();
       stripeBtn.textContent =
-        q.paymentPlan === 'monthly'
+        !hasUpfront && hasMonthly
           ? 'START MONTHLY PAYMENT ↗'
           : q.deposit > 0
             ? `PAY DEPOSIT ${money(q.deposit)} ↗`
