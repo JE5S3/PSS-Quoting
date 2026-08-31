@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Phase Shift Studio private quoting dashboard." />
   <title>Phase Shift Studio — Quote Admin</title>
-  <link rel="stylesheet" href="styles.css?v=2.9" />
+  <link rel="stylesheet" href="styles.css?v=3.0" />
 </head>
 <body>
   <div class="auth-screen" id="auth-screen">
@@ -219,7 +219,14 @@
             <label>DEPOSIT %
               <input name="depositRate" type="number" min="0" max="100" step="1" value="50">
             </label>
-            <div class="payment-link-field"><label>STRIPE PAYMENT LINK<input name="stripeUrl" type="url" placeholder="https://buy.stripe.com/..."></label><a class="btn btn-ghost open-stripe-btn" href="https://dashboard.stripe.com/acct_1U4xKiKrB3h97Y2b/payment-links/create" target="_blank" rel="noopener noreferrer">OPEN STRIPE ↗</a></div>
+            <label class="full">STRIPE PAYMENT LINK
+              <span class="payment-link-row">
+                <input name="stripeUrl" type="url" placeholder="https://buy.stripe.com/...">
+                <button class="btn btn-primary stripe-create" id="create-stripe-link-btn" type="button">CREATE LINK →</button>
+                <a class="btn btn-ghost stripe-shortcut" href="https://dashboard.stripe.com/acct_1U4xKiKrB3h97Y2b/payment-links/create" target="_blank" rel="noopener noreferrer">OPEN STRIPE ↗</a>
+              </span>
+              <small class="stripe-link-help" id="stripe-link-help">Creates a secure AUD link automatically. Deposits are collected first; the remaining balance can be generated after the deposit is recorded.</small>
+            </label>
           </div>
           <div class="totals-box">
             <div><span>SUBTOTAL</span><strong id="calc-subtotal">$0.00</strong></div>
@@ -301,6 +308,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="script.js?v=3.2"></script>
+  <script src="script.js?v=3.3"></script>
 </body>
 </html>
