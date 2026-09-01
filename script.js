@@ -55,6 +55,12 @@ const customerPickerList = document.getElementById('customer-picker-list');
 const customerPickerSearch = document.getElementById('customer-picker-search');
 const settingsForm = document.getElementById('settings-form');
 const quoteIdField = () => document.getElementById('quote-id-field') || form.elements.namedItem('id');
+const setActiveQuoteId = id => {
+  const value = id || '';
+  form.dataset.quoteId = value;
+  quoteIdField().value = value;
+};
+const getActiveQuoteId = () => form.dataset.quoteId || quoteIdField()?.value || '';
 
 let settings = loadSettings();
 
@@ -625,7 +631,7 @@ form.elements.projectName.addEventListener('input', () => {
 function openQuote(id=null) {
   form.reset();
   lineItems.innerHTML = '';
-  quoteIdField().value = '';
+  setActiveQuoteId('');
 
   document.getElementById('quote-form-title').textContent = id ? 'EDIT QUOTE' : 'NEW QUOTE';
   const base = id ? quotes.find(x => x.id === id) : null;
@@ -640,7 +646,7 @@ function openQuote(id=null) {
   updateStripeLinkState(q);
 
   if (id) {
-    quoteIdField().value = q.id;
+    setActiveQuoteId(q.id);
     form.elements.clientName.value = q.clientName || '';
     form.elements.contactName.value = q.contactName || '';
     form.elements.clientEmail.value = q.clientEmail || '';
@@ -779,7 +785,7 @@ function recalculate() {
 
 function formToQuote() {
   const fd = new FormData(form);
-  const id = fd.get('id') || null;
+  const id = getActiveQuoteId() || fd.get('id') || null;
   const existing = id ? quotes.find(q => q.id === id) : null;
   const items = collectItems();
   const totals = totalsFrom(
@@ -857,7 +863,7 @@ async function createStripePaymentLink() {
   try {
     const savedId = await saveQuoteToDb(quote);
     const result = await requestStripePaymentLink(savedId);
-    quoteIdField().value = savedId;
+    setActiveQuoteId(savedId);
     form.elements.stripeUrl.value = result.url;
     await loadLiveData();
     updateStripeLinkState(quotes.find(item => item.id === savedId) || { stripeUrl: result.url });
@@ -894,7 +900,7 @@ form.addEventListener('submit', async e => {
 });
 
 deleteBtn.onclick = async () => {
-  const id = quoteIdField().value;
+  const id = getActiveQuoteId();
   if (!id) return;
 
   const quote = quotes.find(item => item.id === id);
@@ -914,7 +920,7 @@ deleteBtn.onclick = async () => {
 };
 
 cancelBtn.onclick = async () => {
-  const id = quoteIdField().value;
+  const id = getActiveQuoteId();
   const quote = quotes.find(item => item.id === id);
 
   if (!canCancelQuote(quote)) {
@@ -1143,7 +1149,7 @@ async function sendQuoteEmail() {
 
     await loadLiveData();
 
-    quoteIdField().value = savedId;
+    setActiveQuoteId(savedId);
     form.elements.status.value = 'SENT';
     updateEmailSendState(sentAt);
 
