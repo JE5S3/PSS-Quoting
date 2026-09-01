@@ -54,6 +54,7 @@ const customerPickerDialog = document.getElementById('customer-picker-dialog');
 const customerPickerList = document.getElementById('customer-picker-list');
 const customerPickerSearch = document.getElementById('customer-picker-search');
 const settingsForm = document.getElementById('settings-form');
+const quoteField = name => form.querySelector(`[name="${name}"]`) || form.elements.namedItem(name);
 const quoteIdField = () => document.getElementById('quote-id-field') || form.elements.namedItem('id');
 const setActiveQuoteId = id => {
   const value = id || '';
@@ -572,7 +573,7 @@ function renderCustomerPicker() {
       form.elements.contactName.value = c.contact_name || '';
       form.elements.clientEmail.value = c.email || '';
       form.elements.clientPhone.value = c.phone || '';
-      form.elements.emailTo.value = c.email || '';
+      quoteField('emailTo').value = c.email || '';
       customerPickerDialog.close();
     });
   });
@@ -608,11 +609,11 @@ function updateEmailSendState(sentAt) {
   }
 }
 
-form.elements.clientEmail.addEventListener('input', () => {
-  form.elements.emailTo.value = form.elements.clientEmail.value;
+quoteField('clientEmail').addEventListener('input', () => {
+  quoteField('emailTo').value = quoteField('clientEmail').value;
 });
 
-form.elements.projectName.addEventListener('input', () => {
+quoteField('projectName').addEventListener('input', () => {
   const currentId = quoteIdField()?.value || '';
   const quoteNumber = currentId
     ? quotes.find(q => q.id === currentId)?.quoteNumber
@@ -620,10 +621,11 @@ form.elements.projectName.addEventListener('input', () => {
   const generatedPrefix = quoteNumber
     ? `Phase Shift Studio Quote ${quoteNumber}`
     : 'Phase Shift Studio Quote ';
-  if (!form.elements.emailSubject.value || form.elements.emailSubject.value.startsWith(generatedPrefix)) {
-    form.elements.emailSubject.value = defaultEmailSubject({
-      quoteNumber: quoteNumber || form.elements.emailSubject.value.match(/PSS-\d+/)?.[0] || nextQuoteNumber(),
-      projectName: form.elements.projectName.value
+  const subjectField = quoteField('emailSubject');
+  if (!subjectField.value || subjectField.value.startsWith(generatedPrefix)) {
+    subjectField.value = defaultEmailSubject({
+      quoteNumber: quoteNumber || subjectField.value.match(/PSS-\d+/)?.[0] || nextQuoteNumber(),
+      projectName: quoteField('projectName').value
     });
   }
 });
@@ -660,9 +662,9 @@ function openQuote(id=null) {
     form.elements.stripeUrl.value = q.stripeUrl || '';
     form.elements.notes.value = q.notes || '';
     form.elements.terms.value = q.terms || settings.terms;
-    form.elements.emailTo.value = q.clientEmail || '';
-    form.elements.emailSubject.value = q.emailSubject || defaultEmailSubject(q);
-    form.elements.emailMessage.value = q.emailMessage || defaultEmailMessage(q);
+    quoteField('emailTo').value = q.clientEmail || '';
+    quoteField('emailSubject').value = q.emailSubject || defaultEmailSubject(q);
+    quoteField('emailMessage').value = q.emailMessage || defaultEmailMessage(q);
     updateEmailSendState(q.sentAt);
     setPaymentPlan(q.paymentPlan || 'one_time');
     q.items.forEach(addItem);
@@ -672,8 +674,8 @@ function openQuote(id=null) {
     form.elements.depositRate.value = settings.depositRate;
     form.elements.terms.value = settings.terms;
     const newNumber = nextQuoteNumber();
-    form.elements.emailSubject.value = defaultEmailSubject({ quoteNumber: newNumber });
-    form.elements.emailMessage.value = defaultEmailMessage({ quoteNumber: newNumber });
+    quoteField('emailSubject').value = defaultEmailSubject({ quoteNumber: newNumber });
+    quoteField('emailMessage').value = defaultEmailMessage({ quoteNumber: newNumber });
     updateEmailSendState(null);
     setPaymentPlan('one_time');
     addItem({
@@ -1031,19 +1033,19 @@ async function sendQuoteEmail() {
     alert('Cancelled quotes cannot be sent.');
     return;
   }
-  const to = (form.elements.emailTo.value || quote.clientEmail || '').trim();
-  const subject = (form.elements.emailSubject.value || defaultEmailSubject(quote)).trim();
-  const message = (form.elements.emailMessage.value || '').trim();
+  const to = (quoteField('emailTo').value || quote.clientEmail || '').trim();
+  const subject = (quoteField('emailSubject').value || defaultEmailSubject(quote)).trim();
+  const message = (quoteField('emailMessage').value || '').trim();
 
   if (!to) {
     alert('Enter a client email address before sending.');
-    form.elements.emailTo.focus();
+    quoteField('emailTo').focus();
     return;
   }
 
   if (!message) {
     alert('Add a message to accompany the quote.');
-    form.elements.emailMessage.focus();
+    quoteField('emailMessage').focus();
     return;
   }
 
