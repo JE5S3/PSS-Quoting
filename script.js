@@ -54,7 +54,7 @@ const customerPickerDialog = document.getElementById('customer-picker-dialog');
 const customerPickerList = document.getElementById('customer-picker-list');
 const customerPickerSearch = document.getElementById('customer-picker-search');
 const settingsForm = document.getElementById('settings-form');
-const quoteIdField = () => form.elements.namedItem('id');
+const quoteIdField = () => document.getElementById('quote-id-field') || form.elements.namedItem('id');
 
 let settings = loadSettings();
 
