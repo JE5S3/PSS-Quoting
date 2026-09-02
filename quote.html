@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex,nofollow">
   <title>Phase Shift Studio — Quote</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="quote.css?v=3.2">
 </head>
 <body>
@@ -115,7 +118,7 @@
           <span class="eyebrow">[ ACCEPTED ]</span>
           <h3>QUOTE<br>ACCEPTED ✓</h3>
           <p id="accepted-copy"></p>
-          <a id="stripe-payment-btn" class="btn primary payment-btn hidden" href="#" target="_blank" rel="noopener">PAY DEPOSIT <span>↗</span></a>
+          <a id="stripe-payment-btn" class="btn primary payment-btn hidden" href="#" rel="noopener">PAY DEPOSIT <span>↗</span></a>
           <a id="stripe-invoice-btn" class="btn ghost payment-btn hidden" href="#" target="_blank" rel="noopener">VIEW INVOICE <span>↗</span></a>
           <p id="payment-note" class="payment-note hidden">Your payment link will be supplied separately.</p>
         </div>
@@ -126,16 +129,16 @@
           <p>Your response has been recorded. Phase Shift Studio can revise the quote if required.</p>
         </div>
 
-        <div id="cancelled-state" class="hidden">
-          <span class="eyebrow">[ CANCELLED ]</span>
-          <h3>QUOTE<br>CANCELLED.</h3>
-          <p>This quote has been cancelled. Please contact Phase Shift Studio for an updated quote.</p>
-        </div>
-
         <div id="expired-state" class="hidden">
           <span class="eyebrow">[ EXPIRED ]</span>
           <h3>QUOTE<br>EXPIRED.</h3>
           <p>This quote has passed its validity date. Please reply to the original email to request an updated quote.</p>
+        </div>
+
+        <div id="cancelled-state" class="hidden">
+          <span class="eyebrow">[ CANCELLED ]</span>
+          <h3>QUOTE<br>CANCELLED.</h3>
+          <p>This quote has been cancelled. Please contact Phase Shift Studio for an updated quote.</p>
         </div>
       </section>
     </section>
