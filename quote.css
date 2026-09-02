@@ -7,7 +7,7 @@
   --red:#e31b23;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--white);color:var(--black);font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--white);color:var(--black);font-family:"Manrope",Arial,Helvetica,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
 button,input,textarea{font:inherit}
 button{cursor:pointer}
 .hidden{display:none!important}
@@ -15,26 +15,26 @@ button{cursor:pointer}
 .client-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
 .brand-mark{display:grid;place-items:center;width:40px;height:40px;background:var(--red);color:#fff;font-weight:900}
 .client-brand strong{display:block;font-size:15px}
-.client-brand small,.quote-brand small{display:block;margin-top:3px;font:9px monospace;color:var(--muted);letter-spacing:.06em}
+.client-brand small,.quote-brand small{display:block;margin-top:3px;font:11px monospace;color:var(--muted);letter-spacing:.06em}
 .client-shell{width:min(1100px,calc(100% - 28px));margin:38px auto 70px}
 .state-card{min-height:520px;border:1px solid var(--black);background:var(--paper);padding:48px;display:flex;flex-direction:column;justify-content:center}
 .state-card h1{font-size:clamp(64px,9vw,118px);line-height:.82;letter-spacing:-.075em;margin:14px 0 26px}
 .state-card h1 em{font-style:normal;color:var(--red)}
 .state-card p{color:var(--muted)}
-.eyebrow{font:9px monospace;color:var(--red);letter-spacing:.08em}
+.eyebrow{font:11px monospace;color:var(--red);letter-spacing:.08em}
 .quote-sheet{background:#fff;border:1px solid var(--black);padding:42px 48px}
 .quote-head{display:flex;justify-content:space-between;gap:30px;padding-bottom:25px;border-bottom:3px solid var(--black)}
 .quote-brand{display:flex;gap:12px;align-items:center}.quote-brand strong{display:block;font-size:16px}
 .business-meta{text-align:right;font:10px/1.55 monospace}
 .quote-intro{display:grid;grid-template-columns:1fr 1fr;gap:36px;padding:36px 0}
 .quote-intro h2{font-size:52px;letter-spacing:-.06em;margin:8px 0 4px}.quote-intro p{margin:0;color:var(--muted)}
-.prepared{display:flex;flex-direction:column;align-items:flex-start;gap:5px}.prepared strong{font-size:15px;margin-top:6px}.prepared>span:not(.eyebrow){font-size:11px}.prepared small{font:9px monospace;color:var(--muted)}
-.table-wrap{overflow:auto}.quote-table{width:100%;border-collapse:collapse}.quote-table th,.quote-table td{padding:13px 8px;border-bottom:1px solid var(--line);text-align:left}.quote-table th{font:9px monospace;color:var(--muted)}.quote-table th:nth-child(n+2),.quote-table td:nth-child(n+2){text-align:right}.quote-table td{font-size:12px}.quote-table td:last-child{font-weight:900}
+.prepared{display:flex;flex-direction:column;align-items:flex-start;gap:5px}.prepared strong{font-size:15px;margin-top:6px}.prepared>span:not(.eyebrow){font-size:11px}.prepared small{font:11px monospace;color:var(--muted)}
+.table-wrap{overflow:auto}.quote-table{width:100%;border-collapse:collapse}.quote-table th,.quote-table td{padding:13px 8px;border-bottom:1px solid var(--line);text-align:left}.quote-table th{font:11px monospace;color:var(--muted)}.quote-table th:nth-child(n+2),.quote-table td:nth-child(n+2){text-align:right}.quote-table td{font-size:12px}.quote-table td:last-child{font-weight:900}
 .totals-wrap{display:flex;justify-content:flex-end}.totals{width:min(420px,100%);padding-top:22px}.total-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:12px}.total-row.grand{font-size:20px;font-weight:900;border-bottom:2px solid var(--black)}
 .notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:42px;border-top:1px solid var(--black);padding-top:26px}.notes-grid p{white-space:pre-wrap;font-size:11px;line-height:1.55;color:#444}
 .response-panel{margin-top:20px;border:1px solid var(--black);background:var(--paper);padding:34px 38px}
 .response-panel h3{font-size:46px;line-height:.86;letter-spacing:-.06em;margin:12px 0 18px}.response-panel>div>p{max-width:650px;color:var(--muted);line-height:1.6;font-size:13px}
-.response-panel label{display:flex;flex-direction:column;gap:8px;font:9px monospace;margin-top:22px}
+.response-panel label{display:flex;flex-direction:column;gap:8px;font:11px monospace;margin-top:22px}
 .response-panel input[type="text"],.response-panel textarea{border:0;border-bottom:1px solid var(--black);background:transparent;padding:12px 2px;outline:none}.response-panel textarea{border:1px solid var(--black);padding:12px;resize:vertical}
 .check-row{flex-direction:row!important;align-items:flex-start;gap:12px!important;max-width:720px;font:11px/1.5 Arial,sans-serif!important}.check-row input{margin-top:2px}
 .response-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
@@ -43,17 +43,45 @@ button{cursor:pointer}
 .btn.ghost:hover{background:var(--black);color:#fff}.btn.danger{color:var(--red);border-color:var(--red)}.btn.danger:hover{background:var(--red);color:#fff}
 .decline-box{margin-top:24px;padding-top:24px;border-top:1px solid var(--line)}
 .payment-btn{margin-top:16px}.payment-note{font:10px monospace!important}
-.client-footer{width:min(1100px,calc(100% - 28px));margin:0 auto 28px;padding-top:16px;border-top:1px solid var(--line);font:8px monospace;color:var(--muted)}
+.client-footer{width:min(1100px,calc(100% - 28px));margin:0 auto 28px;padding-top:16px;border-top:1px solid var(--line);font:11px monospace;color:var(--muted)}
 @media(max-width:720px){
   .client-topbar{height:64px;padding:0 12px}.client-brand small{display:none}
   .client-shell{margin-top:18px}.quote-sheet{padding:24px 18px}.quote-head,.quote-intro,.notes-grid{grid-template-columns:1fr;display:grid}.business-meta{text-align:left}.quote-intro h2{font-size:42px}
   .response-panel{padding:28px 20px}.response-panel h3{font-size:40px}.response-actions{flex-direction:column}.btn{width:100%}
 }
 
-
-/* V3.1 — readable client quote labels */
-.client-brand small,.quote-brand small,.eyebrow,.prepared small,.quote-table th,.response-panel label{font-size:11px}
-.business-meta{font-size:11px}
-.btn{font-size:11px}
-
-.btn[hidden]{display:none!important}
+/* V3.2 — focused readability, alignment and responsive polish */
+.state-card h1,.quote-intro h2,.response-panel h3{font-family:"Archivo","Manrope",Arial,sans-serif}
+.eyebrow,.client-brand small,.quote-brand small,.business-meta,.prepared small,
+.quote-table th,.response-panel label,.payment-note,.client-footer{font-family:"IBM Plex Mono",Consolas,monospace}
+.client-topbar{padding-inline:clamp(16px,3vw,32px)}
+.client-shell{width:min(1160px,calc(100% - 32px));margin-block:32px 64px}
+.quote-sheet{padding:clamp(28px,4vw,52px)}
+.quote-head{align-items:flex-start;gap:24px;padding-bottom:28px}
+.business-meta{font-size:11px;line-height:1.7}
+.quote-intro{gap:32px;padding:34px 0}
+.quote-intro p,.prepared>span:not(.eyebrow){font-size:12px;line-height:1.55}
+.quote-table th{font-size:11px;line-height:1.4;letter-spacing:.035em}
+.quote-table th,.quote-table td{padding:15px 10px}
+.quote-table td{font-size:13px;line-height:1.5}
+.totals{padding-top:24px}
+.total-row{padding:11px 0;font-size:13px;gap:24px}
+.total-row.grand{padding-block:14px;font-size:21px}
+.notes-grid{gap:40px;margin-top:40px;padding-top:28px}
+.notes-grid p{font-size:12px;line-height:1.7}
+.response-panel{margin-top:24px;padding:clamp(26px,4vw,42px)}
+.response-panel>div>p{font-size:14px;line-height:1.7}
+.response-panel label{font-size:11px;line-height:1.5;gap:10px;margin-top:24px}
+.response-panel input[type="text"],.response-panel textarea{font-family:"Manrope",Arial,sans-serif;font-size:14px;padding:13px 4px}
+.check-row{font-size:12px!important;line-height:1.6!important}
+.response-actions{gap:12px;margin-top:26px}
+.btn{min-height:44px;padding:12px 16px;font-size:11px;line-height:1.2;gap:20px}
+.payment-note{font-size:11px!important;line-height:1.6}
+.client-footer{font-size:11px;line-height:1.6;padding-top:18px}
+@media(max-width:720px){
+  .client-shell{width:min(100% - 20px,1160px);margin-block:12px 32px}
+  .quote-head{gap:18px}.quote-intro{gap:24px;padding:28px 0}
+  .quote-table{min-width:580px}.quote-table th,.quote-table td{padding:13px 9px}
+  .notes-grid{gap:22px;margin-top:30px;padding-top:24px}
+  .response-panel{margin-top:12px}.response-actions{gap:10px}
+}
