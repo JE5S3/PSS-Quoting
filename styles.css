@@ -501,3 +501,109 @@ th{
 button[hidden]{
   display:none!important;
 }
+
+/* V3.4 — focused UI tidy-up (spacing, alignment and readability) */
+body{line-height:1.5}
+.topbar{padding-inline:24px;gap:20px}
+.top-actions{gap:8px}
+.btn{min-height:42px;padding:11px 15px;font-size:11px;line-height:1.15;gap:18px;white-space:nowrap}
+.icon-btn{display:inline-grid;place-items:center;flex:0 0 42px;line-height:1;padding:0}
+.mode-pill{font-size:11px;line-height:1.2;padding:10px 12px;white-space:nowrap}
+.sidebar{padding:32px 20px}
+.nav-kicker{font-size:11px;margin-bottom:24px}
+.nav-item{min-height:48px;padding:15px 6px;font-size:12px;line-height:1.3}
+.nav-item span{font-size:11px}
+.sidebar-foot p{font-size:11px;margin-bottom:8px}
+.sidebar-foot span{font-size:12px;line-height:1.55}
+.workspace{padding:clamp(28px,3vw,48px)}
+.page-head{padding-bottom:30px;gap:24px}
+.page-head>p{font-size:11px;line-height:1.65}
+.section-label{font-size:11px;line-height:1.4}
+.stats-grid article{min-height:168px;padding:24px}
+.stats-grid span,.stats-grid small{font-size:11px;line-height:1.45}
+.stats-grid strong{font-size:clamp(32px,3vw,42px);line-height:1;margin:auto 0 12px}
+.section-bar{padding:48px 0 16px}
+.section-bar h2{line-height:1;margin-top:8px}
+.text-btn{min-height:40px;padding:10px 12px;font-size:11px;line-height:1.2}
+.toolbar input,.toolbar select{min-height:50px;padding:15px 12px;font-size:11px;line-height:1.4}
+.table-wrap{border-bottom:1px solid var(--black)}
+th,td{padding:16px 14px;line-height:1.45;vertical-align:middle}
+th{font-size:11px;letter-spacing:.025em}
+td,td strong{font-size:13px}
+th:nth-last-child(-n+2),td:nth-last-child(-n+2){text-align:right}
+.table-action{min-height:36px;padding:8px 4px;font-size:11px;line-height:1.2;white-space:nowrap}
+.status{align-items:center;min-height:28px;padding:6px 9px;font-size:11px;line-height:1.2;white-space:nowrap}
+.project-filters{overflow-x:auto}
+.project-filter{min-height:46px;padding:13px 18px;font-size:11px;line-height:1.2;white-space:nowrap}
+.project-stage{min-height:38px;padding:8px 10px;font-size:10px;line-height:1.2}
+.project-detail-grid section{padding:24px}
+.project-detail-grid section>span,.project-edit-section label{font-size:11px;line-height:1.45}
+.project-detail-grid p,.project-detail-grid li{font-size:12px;line-height:1.65}
+.project-edit-section input,.project-edit-section textarea{padding:11px;font-size:12px;line-height:1.5}
+.project-save,.customer-delete{min-height:40px;padding:10px 12px;font-size:11px}
+.customer-grid{gap:16px;padding-top:20px}
+.customer-card{padding:24px;min-height:190px}
+.customer-card span{font-size:11px}.customer-card p{font-size:12px;line-height:1.65}
+.settings-card{gap:24px;padding:32px 0}
+.settings-card label,.quote-modal label{font-size:11px;line-height:1.45;gap:9px}
+.settings-card input,.settings-card textarea,.quote-modal input,.quote-modal select,.quote-modal textarea{min-height:44px;padding:12px 4px;font-size:13px;line-height:1.45}
+.settings-card textarea,.quote-modal textarea{padding:12px}
+dialog{max-height:calc(100vh - 24px)}
+.quote-modal,.preview-modal{max-height:calc(100vh - 24px)}
+.modal-head{gap:20px;padding:18px 24px}
+.modal-head h2{line-height:.95;margin-top:7px}
+.modal-head-actions{gap:8px}
+.email-send-state{min-height:36px;padding:7px 10px;font-size:11px;line-height:1.2}
+.quote-builder-grid .form-section>summary,.quote-builder-grid .line-items-head{min-height:60px;padding:17px 24px}
+.quote-builder-grid .form-section>summary:hover,.quote-builder-grid .line-items-head:hover{padding-left:24px}
+.form-section>summary p,.line-items-head>p{font-size:11px;line-height:1.35}
+.section-content{padding:0 24px 24px}
+.form-grid{gap:20px 18px}
+.pricing-type-note{padding:13px 14px;font-size:11px;line-height:1.6}
+.line-item{gap:12px;padding:14px 0;align-items:end}
+.line-item .item-total{min-height:44px;padding:12px 0;font-size:13px;line-height:1.45}
+.remove-item{display:grid;place-items:center;width:36px;height:44px;padding:0;line-height:1}
+.totals-layout{gap:24px}
+.totals-box>div{min-height:49px;align-items:center;padding:13px 16px;font-size:11px;line-height:1.35;gap:20px}
+.totals-box .grand strong,.totals-box .monthly-total-row strong{font-size:21px;line-height:1}
+.payment-link-row{gap:10px;align-items:end}
+.payment-link-row .stripe-create,.payment-link-row .stripe-shortcut{min-height:44px;min-width:142px;padding:11px 13px}
+.stripe-link-help{font-size:11px;line-height:1.55;margin-top:9px}
+.email-actions{gap:20px;margin-top:18px;padding-inline:24px;padding-bottom:24px}
+.email-actions p{font-size:11px;line-height:1.55}
+#quote-dialog .modal-actions{min-height:66px;gap:10px;padding:12px 24px}
+.picker-toolbar{padding:16px 24px}.picker-toolbar input{min-height:44px;font-size:13px}
+.customer-picker-option{padding:22px;line-height:1.5}.customer-picker-option span{font-size:11px;line-height:1.55}
+#quote-preview{padding:32px}.print-sheet{padding:44px}
+.print-meta,.print-table th,.print-notes h4{font-size:11px;line-height:1.55}
+.print-table th,.print-table td{padding:14px 9px}.print-table td{font-size:12px;line-height:1.5}
+.print-notes p{font-size:12px;line-height:1.65}
+.preview-actions{gap:10px;padding:18px 32px}
+@media(max-width:1050px){
+  .workspace{padding:30px 24px}.stats-grid article{min-height:150px}
+  th,td{padding:14px 12px}.quote-builder-commercial .line-item{grid-template-columns:minmax(220px,1fr) 110px 68px 100px 118px 32px}
+}
+@media(max-width:720px){
+  .topbar{padding-inline:12px}.brand-copy{display:none}.top-actions{gap:6px}
+  .workspace{padding:22px 12px}.page-head{padding-bottom:24px}.page-head h1{font-size:clamp(48px,16vw,64px)}
+  .stats-grid{gap:0}.stats-grid article{min-height:124px;padding:20px}
+  .section-bar{padding-top:36px}.section-bar h2{font-size:30px}
+  .table-wrap table{min-width:720px}th,td{padding:13px 11px}
+  .customer-card{padding:20px;min-height:170px}
+  dialog,#quote-dialog{width:calc(100vw - 12px);max-height:calc(100vh - 12px)}
+  .quote-modal,.preview-modal,#quote-dialog .quote-modal{max-height:calc(100vh - 12px)}
+  #quote-dialog .modal-head{padding:14px;gap:12px}
+  #quote-dialog .modal-head-actions{gap:6px;overflow-x:auto;justify-content:flex-start}
+  #quote-dialog .modal-head-actions .btn,#quote-dialog .modal-head-actions .email-send-state{flex:0 0 auto}
+  .quote-builder-grid .form-section>summary,.quote-builder-grid .line-items-head{padding:15px 16px}
+  .section-content,.quote-builder-grid .section-content{padding:0 16px 20px}
+  .form-grid{gap:16px}.quote-builder-commercial .line-item{grid-template-columns:minmax(0,1fr) 84px 68px 86px 32px;gap:8px}
+  .quote-builder-commercial .line-item .item-total{grid-column:1/5}
+  .payment-link-row{grid-template-columns:1fr}.payment-link-row input{grid-column:1}
+  .payment-link-row .stripe-create,.payment-link-row .stripe-shortcut{width:100%}
+  .email-actions{padding-inline:16px;padding-bottom:20px}
+  #quote-dialog .modal-actions{padding:10px 14px;justify-content:stretch}
+  #quote-dialog .modal-actions .btn{flex:1}
+  #quote-preview{padding:10px}#quote-preview .print-sheet{padding:20px}
+  .preview-actions{padding:14px}.preview-actions .btn{width:100%}
+}
