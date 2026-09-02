@@ -5,6 +5,7 @@
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--white);color:var(--black);font-family:"Manrope",Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased}
+[hidden]{display:none!important}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 a{color:inherit;text-decoration:none}
