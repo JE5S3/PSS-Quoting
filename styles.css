@@ -4,7 +4,7 @@
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--white);color:var(--black);font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--white);color:var(--black);font-family:"Manrope",Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 a{color:inherit;text-decoration:none}
@@ -177,6 +177,166 @@ input[type="number"]::-webkit-outer-spin-button{
 .stripe-link-help{display:block;margin-top:8px;color:var(--muted);font:10px/1.5 monospace}
 @media(max-width:850px){.payment-link-row{grid-template-columns:1fr 1fr}.payment-link-row input{grid-column:1/3}.payment-link-row .stripe-create,.payment-link-row .stripe-shortcut{width:100%;min-width:0}}
 @media(max-width:520px){.payment-link-row{grid-template-columns:1fr}.payment-link-row input{grid-column:1}.payment-link-row .stripe-create,.payment-link-row .stripe-shortcut{width:100%}}
+
+/* V3.2 — wider quote workbench + public-site brand styling */
+.page-head h1,
+.modal-head h2,
+.auth-copy h1,
+.section-bar h2{
+  font-family:"Archivo","Manrope",Arial,Helvetica,sans-serif;
+}
+.section-label,
+.field-label,
+.mode-pill,
+.stats-grid span,
+.stats-grid small,
+.form-section>summary p,
+.line-items-head>p,
+.quote-modal label,
+.settings-card label,
+.email-send-state,
+th{
+  font-family:"IBM Plex Mono",Consolas,Monaco,monospace;
+}
+.brand-mark{
+  display:inline-flex;
+  place-items:unset;
+  align-items:center;
+  width:auto;
+  height:auto;
+  gap:0;
+  background:transparent;
+  color:var(--black);
+  font-size:24px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:-.055em;
+}
+.brand-mark .logo-slash,
+.logo-slash{color:var(--red)}
+.brand-name{
+  display:inline-flex;
+  align-items:center;
+  gap:.32em;
+  color:var(--black);
+  font-size:14px;
+  font-weight:900;
+  line-height:1;
+  letter-spacing:.045em;
+  white-space:nowrap;
+}
+.brand-shift{color:var(--red)}
+.brand-studio{
+  padding:.34em .48em .38em;
+  background:var(--black);
+  color:var(--white);
+}
+.brand-copy{
+  display:flex;
+  align-items:center;
+  min-width:0;
+}
+.brand-copy small{
+  margin-top:0;
+  font-size:10px;
+}
+.brand strong{font-size:14px}
+#quote-dialog{
+  width:min(1720px,calc(100vw - 26px));
+  max-height:calc(100vh - 26px);
+}
+#quote-dialog .quote-modal{
+  max-height:calc(100vh - 26px);
+  background:
+    linear-gradient(#ecece7 1px,transparent 1px),
+    linear-gradient(90deg,#ecece7 1px,transparent 1px),
+    var(--white);
+  background-size:28px 28px;
+}
+#quote-dialog .modal-head{
+  grid-template-columns:auto minmax(260px,1fr) auto;
+  padding:18px 24px;
+}
+#quote-dialog .modal-head h2{
+  font-size:clamp(36px,4vw,62px);
+  line-height:.86;
+}
+.quote-builder-grid{
+  display:grid;
+  grid-template-columns:minmax(420px,.82fr) minmax(640px,1.18fr);
+  gap:0;
+  align-items:start;
+}
+.quote-builder-column{
+  min-width:0;
+  display:grid;
+  align-content:start;
+}
+.quote-builder-primary{
+  border-right:1px solid var(--black);
+}
+.quote-builder-commercial{
+  background:rgba(255,255,255,.58);
+}
+.quote-builder-grid .form-section{
+  background:rgba(247,247,244,.94);
+}
+.quote-builder-commercial .form-section{
+  background:rgba(255,255,255,.9);
+}
+.quote-builder-grid .form-section>summary,
+.quote-builder-grid .line-items-head{
+  min-height:62px;
+  padding:18px 24px;
+  transition:background .16s ease,color .16s ease,padding .16s ease;
+}
+.quote-builder-grid .form-section>summary:hover,
+.quote-builder-grid .line-items-head:hover{
+  background:var(--paper);
+  padding-left:30px;
+}
+.quote-builder-grid .section-content{
+  padding:0 24px 24px;
+}
+.quote-builder-primary .form-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.quote-builder-commercial .line-item{
+  grid-template-columns:minmax(280px,1.25fr) minmax(116px,.52fr) 72px 112px 132px 32px;
+}
+.quote-builder-commercial .totals-layout{
+  grid-template-columns:minmax(360px,1fr) minmax(320px,380px);
+  gap:24px;
+}
+.quote-builder-commercial .email-actions{
+  padding-inline:24px;
+  padding-bottom:24px;
+}
+.notes-section textarea[name="terms"]{
+  min-height:180px;
+}
+#quote-dialog .modal-actions{
+  justify-content:flex-end;
+  padding:14px 24px;
+  box-shadow:0 -14px 28px rgba(247,247,244,.82);
+}
+@media(max-width:1280px){
+  .quote-builder-grid{grid-template-columns:1fr}
+  .quote-builder-primary{border-right:0}
+  .quote-builder-commercial .totals-layout{grid-template-columns:1fr}
+}
+@media(max-width:860px){
+  #quote-dialog{width:min(100vw - 16px,760px)}
+  #quote-dialog .modal-head{grid-template-columns:auto 1fr}
+  #quote-dialog .modal-head-actions{grid-column:1/-1;justify-content:stretch}
+  #quote-dialog .modal-head-actions .btn,
+  #quote-dialog .modal-head-actions .email-send-state{flex:1}
+  .brand-name{display:none}
+  .quote-builder-primary .form-grid{grid-template-columns:1fr}
+  .quote-builder-commercial .line-item{grid-template-columns:1fr 95px 70px 90px 28px}
+  .quote-builder-commercial .line-item label:first-child{grid-column:1/-1}
+  .quote-builder-commercial .line-item .item-total{grid-column:1/5;text-align:left}
+}
 .picker-modal{
   background:var(--white);
   border:1px solid var(--black);
