@@ -494,3 +494,10 @@ th{
 @media(max-width:720px){
   .email-actions{align-items:stretch;flex-direction:column}
 }
+
+/* Final cascade guard: hidden action controls must never be revived by button display rules. */
+[hidden],
+.btn[hidden],
+button[hidden]{
+  display:none!important;
+}
