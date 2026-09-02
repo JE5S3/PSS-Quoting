@@ -472,9 +472,6 @@ document.getElementById('refresh-btn').onclick = loadLiveData;
 document.getElementById('close-quote-dialog').onclick = () => dialog.close();
 
 document.querySelectorAll('[data-collapsible-section]').forEach(section => {
-  section.addEventListener('mouseenter', () => {
-    section.open = true;
-  });
   section.querySelector('summary')?.addEventListener('click', event => {
     if (event.target.closest('button, a, input, select, textarea')) event.stopPropagation();
   });
