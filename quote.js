@@ -116,6 +116,11 @@ function renderQuote(q) {
 }
 
 function renderStatus(q) {
+  const upfrontTotal = Number(q.upfrontTotal ?? (q.paymentPlan === 'monthly' ? 0 : q.total) ?? 0);
+  const monthlyTotal = Number(q.monthlyTotal ?? (q.paymentPlan === 'monthly' ? q.total : 0) ?? 0);
+  const hasUpfront = upfrontTotal > 0;
+  const hasMonthly = monthlyTotal > 0;
+
   document.getElementById('awaiting-response').classList.add('hidden');
   document.getElementById('accepted-state').classList.add('hidden');
   document.getElementById('declined-state').classList.add('hidden');
