@@ -578,13 +578,9 @@ function renderCustomerPicker() {
 
 
 function defaultEmailMessage(q = {}) {
-  const name = (q.contactName || q.clientName || '').trim();
-  const greeting = name ? `Hi ${name},` : 'Hi,';
   const project = q.projectName ? ` for ${q.projectName}` : '';
 
-  return `${greeting}
-
-Thanks for discussing your project with Phase Shift Studio.
+  return `Thanks for discussing your project with Phase Shift Studio.
 
 Please find the quote${project} below. If you have any questions or would like any adjustments, simply reply to this email.
 
