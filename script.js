@@ -700,8 +700,8 @@ function updateStripeLinkState(q = null) {
 }
 
 function canCancelQuote(q) {
-  if (!q || !['DRAFT', 'SENT'].includes(q.status)) return false;
-  if (q.acceptedAt || q.paidAt) return false;
+  if (!q || !['DRAFT', 'SENT', 'ACCEPTED'].includes(q.status)) return false;
+  if (q.paidAt) return false;
   if (Number(q.paidAmount || 0) > 0 || Number(q.totalPaid || 0) > 0) return false;
   return !(q.payments || []).length;
 }
@@ -919,7 +919,7 @@ cancelBtn.onclick = async () => {
   const quote = quotes.find(item => item.id === id);
 
   if (!canCancelQuote(quote)) {
-    alert('This quote cannot be cancelled because it has been accepted or has a payment recorded.');
+    alert('This quote cannot be cancelled because it is not eligible or has a payment recorded.');
     return;
   }
 
@@ -941,8 +941,7 @@ cancelBtn.onclick = async () => {
 
     if (paymentError) throw paymentError;
     if (
-      !['DRAFT', 'SENT'].includes(current.status) ||
-      current.accepted_at ||
+      !['DRAFT', 'SENT', 'ACCEPTED'].includes(current.status) ||
       current.paid_at ||
       Number(current.paid_amount || 0) > 0 ||
       Number(paymentCount || 0) > 0
@@ -955,7 +954,6 @@ cancelBtn.onclick = async () => {
       .update({ status: 'CANCELLED', updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('status', current.status)
-      .is('accepted_at', null)
       .is('paid_at', null);
 
     update = current.paid_amount == null
